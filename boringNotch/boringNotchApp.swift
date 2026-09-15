@@ -422,6 +422,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         setupDragDetectors()
 
+        // JARVIS: stille polling af husets læse-rute (gør intet når adressen er tom)
+        JarvisPoller.shared.start()
+
         if coordinator.firstLaunch {
             DispatchQueue.main.async {
                 self.showOnboardingWindow()
