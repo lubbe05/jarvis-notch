@@ -5,6 +5,7 @@
 //  Created by Hugo Persson on 2024-08-25.
 //
 
+import Defaults
 import SwiftUI
 
 struct TabModel: Identifiable {
@@ -19,12 +20,24 @@ let tabs = [
     TabModel(label: "Shelf", icon: "tray.fill", view: .shelf)
 ]
 
+// Jarvis: egen fane, kun når adressen er skrevet i indstillingerne.
+let jarvisTab = TabModel(label: "Jarvis", icon: "brain.head.profile", view: .jarvis)
+
+/// Fanerne der faktisk skal vises lige nu.
+func synligeTabs() -> [TabModel] {
+    var liste = tabs.filter { $0.view != .shelf || Defaults[.boringShelf] }
+    if !Defaults[.jarvisAdresse].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        liste.append(jarvisTab)
+    }
+    return liste
+}
+
 struct TabSelectionView: View {
     @ObservedObject var coordinator = BoringViewCoordinator.shared
     @Namespace var animation
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(tabs) { tab in
+            ForEach(synligeTabs()) { tab in
                     TabButton(label: tab.label, icon: tab.icon, selected: coordinator.currentView == tab.view) {
                         withAnimation(.smooth) {
                             coordinator.currentView = tab.view
