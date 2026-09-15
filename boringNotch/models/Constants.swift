@@ -199,4 +199,8 @@ extension Defaults.Keys {
     }
 
     static let didClearLegacyURLCacheV1 = Key<Bool>("didClearLegacyURLCache_v1", default: false)
+
+    // MARK: Jarvis
+    // Adressen på husets læse-rute (GET /notch). Tom = Jarvis er slået fra.
+    static let jarvisAdresse = Key<String>("jarvisAdresse", default: "")
 }
