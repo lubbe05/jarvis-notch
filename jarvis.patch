@@ -1,0 +1,1391 @@
+From b80fa867cb5c3b312bdfd88a0add7a161a9f413a Mon Sep 17 00:00:00 2001
+From: lubbe05 <lubbe05@users.noreply.github.com>
+Date: Wed, 16 Sep 2026 01:00:20 +0200
+Subject: [PATCH] =?UTF-8?q?Jarvis=20i=20notchen:=20egen=20fane,=20m=C3=A6r?=
+ =?UTF-8?q?ke=20i=20den=20foldede=20notch=20og=20=C3=A9n=20indstilling?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Ny mappe boringNotch/Jarvis/ (tolerant model + stille poller + visning +
+indstilling), så tilføjelsen kan følge upstream:
+
+- JarvisModel.swift: Codable-model for husets GET /notch (alle felter
+  optional, hvert topfelt afkodet for sig, så ét ændret felt aldrig koster
+  hele visningen) + JarvisState (svar, sidst, fejl, henter).
+- JarvisPoller.swift: URLSession-GET hvert 60. sekund (gulv 30), timeout 5 s,
+  kun når indstillingen er sat, ingen cache, ingen genforsøgs-storm, aldrig
+  POST. Fejl er stille: «Jarvis er ikke at nå».
+- JarvisView.swift: udfoldet visning i appens egen stil — kort der venter
+  (tal + husets ord), seneste kort som klikbar række der åbner web-appen med
+  NSWorkspace, breve, husets seneste gerning, depotets værdi og dagsændring
+  (grøn/rød/grå efter retning), næste regnskab med «(foreløbig)»,
+  laboratoriernes sætning, agent-prikker med navn i tooltip. Plus
+  JarvisLukketMaerke: lille hjerne + antal i den sammenfoldede notch, kun når
+  kort venter og musikken er tavs.
+- JarvisSettingsView.swift: «Jarvis-adresse» (Defaults-nøgle jarvisAdresse,
+  standard tom, Tailscale-adressen kun som blegt forslag) og en Test-knap.
+
+Hægtet på (mærket // JARVIS): NotchViews.jarvis, fanen i TabSelectionView
+(vises kun når adressen er sat), fanerækken i BoringHeader også når hylden er
+slået fra, switch + foldet mærke + chin-bredde i ContentView, menupunkt og
+rute i SettingsView, polling startet i applicationDidFinishLaunching,
+Defaults-nøgle i Constants, danske tekster i Localizable.xcstrings (som da og
+en, så dansk vises uanset systemsprog; engelske nøgler er fallback), og mappen
+Jarvis registreret som synkroniseret gruppe i xcodeproj. knownRegions fik da.
+
+Netadgang var der i forvejen (com.apple.security.network.client).
+
+Skrevet uden Mac og uden Xcode: koden er ALDRIG kompileret. JARVIS-OPSKRIFT.md
+i roden siger hvordan Lauritz bygger den, hvad han skal skrive i
+indstillingen, og hvad han skal bede en Claude-session på Mac'en om hvis der
+er oversætterfejl.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ JARVIS-OPSKRIFT.md                            | 144 +++++++
+ boringNotch.xcodeproj/project.pbxproj         |   4 +
+ boringNotch/ContentView.swift                 |  10 +-
+ boringNotch/Jarvis/JarvisModel.swift          | 167 ++++++++
+ boringNotch/Jarvis/JarvisPoller.swift         | 102 +++++
+ boringNotch/Jarvis/JarvisSettingsView.swift   |  84 ++++
+ boringNotch/Jarvis/JarvisView.swift           | 372 ++++++++++++++++++
+ boringNotch/Localizable.xcstrings             | 220 +++++++++++
+ boringNotch/boringNotchApp.swift              |   3 +
+ .../components/Notch/BoringHeader.swift       |   3 +-
+ .../components/Settings/SettingsView.swift    |   5 +
+ .../components/Tabs/TabSelectionView.swift    |  15 +-
+ boringNotch/enums/generic.swift               |   1 +
+ boringNotch/models/Constants.swift            |   4 +
+ 14 files changed, 1131 insertions(+), 3 deletions(-)
+ create mode 100644 JARVIS-OPSKRIFT.md
+ create mode 100644 boringNotch/Jarvis/JarvisModel.swift
+ create mode 100644 boringNotch/Jarvis/JarvisPoller.swift
+ create mode 100644 boringNotch/Jarvis/JarvisSettingsView.swift
+ create mode 100644 boringNotch/Jarvis/JarvisView.swift
+
+diff --git a/JARVIS-OPSKRIFT.md b/JARVIS-OPSKRIFT.md
+new file mode 100644
+index 0000000..8c6785c
+--- /dev/null
++++ b/JARVIS-OPSKRIFT.md
+@@ -0,0 +1,144 @@
++# Jarvis i notchen — opskrift til Mac'en
++
++Lauritz: den her fil er til dig. Den siger hvad der er bygget, hvad du skal
++gøre på Mac'en, og hvad du skal skrive hvis det ikke vil kompilere.
++
++**Ærligt først:** koden er skrevet i huset på Linux, hvor der hverken er Mac
++eller Xcode. **Den er aldrig kompileret.** Alt er skrevet konservativt og i
++appens egen stil, men regn med at der kan være et par oversætterfejl der skal
++rettes på Mac'en. Punkt (d) nederst er prompten der ordner det.
++
++## Hvad der er bygget
++
++En ny fane «Jarvis» i den udfoldede notch, et lille mærke i den sammenfoldede,
++og én indstilling. Alt nyt ligger i sin egen mappe, så appen kan følge
++opstrøms-opdateringer:
++
++- `boringNotch/Jarvis/JarvisModel.swift` — svaret fra husets bro + tilstanden i appen
++- `boringNotch/Jarvis/JarvisPoller.swift` — henter `GET /notch` hvert 60. sekund
++- `boringNotch/Jarvis/JarvisView.swift` — fanen + mærket i den foldede notch
++- `boringNotch/Jarvis/JarvisSettingsView.swift` — indstillingen «Jarvis»
++
++Rørt ved i forvejen eksisterende filer (små, mærkede med `// JARVIS`):
++`ContentView.swift`, `BoringHeader.swift`, `Tabs/TabSelectionView.swift`,
++`enums/generic.swift`, `models/Constants.swift`, `Settings/SettingsView.swift`,
++`boringNotchApp.swift`, `Localizable.xcstrings`, `boringNotch.xcodeproj`.
++
++Notchen **læser kun**. Der sendes aldrig noget til huset, der er ingen nøgler i
++koden, og Tailscale-adressen står kun som forslag i det tomme tekstfelt.
++
++Det du ser, udfoldet: hvor mange kort der venter (tal i mærket + husets egne
++ord), det seneste kort (titel · afsender) som du kan klikke på — det åbner
++web-appen i browseren, en linje om hvad huset sidst gjorde, depotets værdi og
++dagens ændring (grøn/rød/grå), næste regnskab («MU aflægger regnskab i
++morgen», med «(foreløbig)» hvis datoen er kildens gæt), laboratoriernes ene
++sætning, og en prik pr. agent (grøn arbejder, grå hviler, rød fejl — hold
++musen over prikken for navnet). Når broen ikke svarer: én dæmpet linje,
++«Jarvis er ikke at nå». Ingen popups.
++
++Sammenfoldet: et lille hjerne-ikon med antallet, men kun når der faktisk er
++kort der venter, og kun når der ikke spiller musik. Mærket har forrang for
++det lille ansigt.
++
++## (a) Forudsætninger
++
++- **macOS 15.6 eller nyere** og **Xcode 26 eller nyere** for at bygge
++  (selve appen kører fra macOS 14 Sonoma).
++- Tailscale tændt på Mac'en. Prøv først i Terminal:
++
++  ```bash
++  curl http://<din-tailscale-adresse>:8000/health
++  curl http://<din-tailscale-adresse>:8000/notch
++  ```
++
++  Den første skal svare `{"ok": true, ...}`. Den anden er den JSON fanen viser.
++  Svarer de ikke, er det huset eller Tailscale — ikke appen.
++
++## (b) Hent og byg
++
++```bash
++git clone <dit repo>        # fx git@github.com:lubbe05/jarvis-notch.git
++cd jarvis-notch
++git checkout jarvis
++open boringNotch.xcodeproj
++```
++
++I Xcode: vælg målet **boringNotch** → fanen **Signing & Capabilities** →
++**Team**: din egen Apple-konto (en «Personal Team» er nok; sæt evt. et unikt
++bundle-id hvis Xcode brokker sig). Så **Cmd + R** (Build & Run).
++
++Netadgang er der i forvejen: `com.apple.security.network.client` stod allerede
++i `boringNotch.entitlements`, så der er intet at tilføje.
++
++## (c) Indstillingen
++
++Menulinjens ikon (eller højreklik på notchen) → **Settings** → **Jarvis** i
++listen til venstre. Skriv adressen i feltet:
++
++```
++http://<din-tailscale-adresse>:8000/notch
++```
++
++(Det er også teksten der står som blegt forslag i det tomme felt.) Tryk
++**Test**: der kommer «Jarvis svarede» eller «Jarvis er ikke at nå». Så snart
++adressen står der, dukker fanen «Jarvis» op i den udfoldede notch (hjerne-
++ikonet). Tømmer du feltet, forsvinder både fanen, mærket og al hentning.
++
++Vil du have Jarvis-fanen til at blive stående i stedet for at falde tilbage til
++Home hver gang notchen lukker: **Settings → General** → «Remember last tab».
++
++Teksterne er danske. Appen har ikke dansk i forvejen, så de danske sætninger
++står i `Localizable.xcstrings` som både `da` og `en` — så ser du dansk uanset
++hvilket sprog macOS kører. Nøglerne i koden er engelske og bruges som fallback
++for alle andre sprog.
++
++## (d) Hvis det ikke kompilerer
++
++Start en Claude Code-session i mappen og skriv:
++
++> Byg projektet `boringNotch.xcodeproj` med `xcodebuild -scheme boringNotch
++> build` (eller i Xcode). Ret de oversætterfejl der kommer, men rør KUN filerne
++> i `boringNotch/Jarvis/` og de steder i `ContentView.swift`,
++> `BoringHeader.swift`, `Tabs/TabSelectionView.swift`, `enums/generic.swift`,
++> `models/Constants.swift` og `Settings/SettingsView.swift` der er mærket
++> `// JARVIS`. Lav ikke om på appens øvrige opførsel, tilføj ingen nye
++> afhængigheder (kun Foundation/SwiftUI/URLSession og appens egen Defaults), og
++> lad notchen blive læse-eneste — ingen POST til broen. Kør appen, sæt
++> Jarvis-adressen til `http://<din-tailscale-adresse>:8000/notch` i Settings → Jarvis,
++> og vis mig skærmbilleder af både den sammenfoldede og den udfoldede notch.
++
++Hvis en fane eller en indstilling slet ikke vil samarbejde, er det hele
++reversibelt: slet mappen `boringNotch/Jarvis/` og de otte `// JARVIS`-steder.
++Vil du kun af med mærket i den foldede notch, er det de to blokke i
++`ContentView.swift` der er mærket `// JARVIS`.
++
++## (e) Opdatering fra upstream
++
++```bash
++git remote add upstream https://github.com/TheBoredTeam/boring.notch.git   # kun første gang
++git fetch upstream
++git checkout jarvis
++git rebase upstream/main        # eller upstream/dev, hvis du følger dev-grenen
++```
++
++Konflikter kommer kun de få steder ovenfor; mappen `boringNotch/Jarvis/` rører
++ingen andre. Efter en rebase: byg igen, og tjek at fanen stadig er der.
++
++## Kendte usikkerheder
++
++- Koden er ikke kompileret. Mest sandsynlige fejl: en modifier eller en
++  SwiftUI-API der hedder noget andet end gættet.
++- Mærket i den sammenfoldede notch er hængt på den eksisterende kæde af
++  tilstande. Ser det skævt ud i kanten af notchen, så er det bredden i
++  `JarvisLukketMaerke` (i `JarvisView.swift`) der skal skrues på.
++- Fanen antager at broens rute `GET /notch` svarer som aftalt. Mangler et felt,
++  udelader visningen bare den linje — den bør aldrig gå i stykker af det.
++
++## Uden grenen: jarvis.patch
++
++Har du kun `main`, ligger hele tilføjelsen som `jarvis.patch` i roden:
++
++```bash
++git checkout -b jarvis main
++git am jarvis.patch      # eller: git apply jarvis.patch
++```
+diff --git a/boringNotch.xcodeproj/project.pbxproj b/boringNotch.xcodeproj/project.pbxproj
+index 3cd5f1e..25c14ad 100644
+--- a/boringNotch.xcodeproj/project.pbxproj
++++ b/boringNotch.xcodeproj/project.pbxproj
+@@ -323,6 +323,7 @@
+ 
+ /* Begin PBXFileSystemSynchronizedRootGroup section */
+ 		112FB72F2CCF12CC0015238C /* private */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = private; sourceTree = "<group>"; };
++		11FA5A1F2ED0A00000000001 /* Jarvis */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Jarvis; sourceTree = "<group>"; };
+ 		11F748502EC9AABA00F841DB /* BoringNotchXPCHelper */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (11F7485C2EC9AABA00F841DB /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = BoringNotchXPCHelper; sourceTree = "<group>"; };
+ /* End PBXFileSystemSynchronizedRootGroup section */
+ 
+@@ -583,6 +584,7 @@
+ 				14CEF41E2C5CAED400855D72 /* boringNotch.entitlements */,
+ 				14CEF41B2C5CAED400855D72 /* Preview Content */,
+ 				112FB72F2CCF12CC0015238C /* private */,
++				11FA5A1F2ED0A00000000001 /* Jarvis */,
+ 				11CC44A12CEE614100C7244B /* BoringViewCoordinator.swift */,
+ 			);
+ 			path = boringNotch;
+@@ -799,6 +801,7 @@
+ 			);
+ 			fileSystemSynchronizedGroups = (
+ 				112FB72F2CCF12CC0015238C /* private */,
++				11FA5A1F2ED0A00000000001 /* Jarvis */,
+ 			);
+ 			name = boringNotch;
+ 			packageProductDependencies = (
+@@ -843,6 +846,7 @@
+ 			developmentRegion = en;
+ 			hasScannedForEncodings = 0;
+ 			knownRegions = (
++				da,
+ 				en,
+ 				Base,
+ 			);
+diff --git a/boringNotch/ContentView.swift b/boringNotch/ContentView.swift
+index 4bccee5..58fdff2 100644
+--- a/boringNotch/ContentView.swift
++++ b/boringNotch/ContentView.swift
+@@ -23,6 +23,8 @@ struct ContentView: View {
+     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
+     @ObservedObject var brightnessManager = BrightnessManager.shared
+     @ObservedObject var volumeManager = VolumeManager.shared
++    // JARVIS
++    @ObservedObject var jarvis = JarvisState.shared
+     @State private var hoverTask: Task<Void, Never>?
+     @State private var isHovering: Bool = false
+     @State private var anyDropDebounceTask: Task<Void, Never>?
+@@ -71,7 +73,8 @@ struct ContentView: View {
+         {
+             chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
+         } else if !coordinator.expandingView.show && vm.notchState == .closed
+-            && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
++            && (!musicManager.isPlaying && musicManager.isPlayerIdle)
++            && (Defaults[.showNotHumanFace] || jarvis.visKompaktMaerke)  // JARVIS
+             && !vm.hideOnClosed
+         {
+             chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
+@@ -290,6 +293,9 @@ struct ContentView: View {
+                       } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music) && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle) && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed {
+                           MusicLiveActivity()
+                               .frame(alignment: .center)
++                      } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && jarvis.visKompaktMaerke && !vm.hideOnClosed  {
++                          // JARVIS: kort der venter på ham
++                          JarvisLukketMaerke()
+                       } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed  {
+                           BoringFaceAnimation()
+                        } else if vm.notchState == .open {
+@@ -349,6 +355,8 @@ struct ContentView: View {
+                         NotchHomeView(albumArtNamespace: albumArtNamespace)
+                     case .shelf:
+                         ShelfView()
++                    case .jarvis:
++                        JarvisView()
+                     }
+                 }
+                 .transition(
+diff --git a/boringNotch/Jarvis/JarvisModel.swift b/boringNotch/Jarvis/JarvisModel.swift
+new file mode 100644
+index 0000000..93407e2
+--- /dev/null
++++ b/boringNotch/Jarvis/JarvisModel.swift
+@@ -0,0 +1,167 @@
++//
++//  JarvisModel.swift
++//  boringNotch
++//
++//  Jarvis: Lauritz' eget agenthus. Modellen for svaret fra husets bro
++//  (GET /notch — læse-eneste JSON, ≤ 2 kB). Alle felter kan mangle, så
++//  alt er optional og afkodningen giver op i stilhed felt for felt.
++//
++
++import Defaults
++import Foundation
++
++// MARK: - Svaret fra broen
++
++struct JarvisSeneste: Codable, Hashable {
++    var id: String?
++    var titel: String?
++    var fra: String?
++    var link: String?
++}
++
++struct JarvisVenter: Codable, Hashable {
++    var antal: Int?
++    var ord: String?
++    var seneste: JarvisSeneste?
++}
++
++struct JarvisBreve: Codable, Hashable {
++    var antal: Int?
++    var ord: String?
++}
++
++struct JarvisHuset: Codable, Hashable {
++    var tilstand: String?
++    var ord: String?
++    var seneste: String?
++    var hvornaar: String?
++}
++
++struct JarvisRegnskab: Codable, Hashable {
++    var ticker: String?
++    var navn: String?
++    var datoOrd: String?
++    var foreloebig: Bool?
++}
++
++struct JarvisDepot: Codable, Hashable {
++    var vaerdiOrd: String?
++    var dagsaendringOrd: String?
++    var retning: String?
++    var naesteRegnskab: JarvisRegnskab?
++}
++
++struct JarvisLabs: Codable, Hashable {
++    var ord: String?
++}
++
++struct JarvisAgent: Codable, Hashable, Identifiable {
++    var navn: String?
++    var tilstand: String?
++    var ord: String?
++
++    /// Ikke en del af JSON'en; kun til ForEach.
++    var id: String { (navn ?? "?") + "|" + (tilstand ?? "?") }
++}
++
++struct JarvisLinks: Codable, Hashable {
++    var app: String?
++    var kommandocenter: String?
++    var investor: String?
++}
++
++/// Hele svaret. Hvert felt afkodes for sig med `try?`, så et enkelt felt
++/// broen har ændret aldrig kan koste hele visningen.
++struct JarvisSvar: Codable {
++    var version: Int?
++    var hentet: String?
++    var venter: JarvisVenter?
++    var breve: JarvisBreve?
++    var huset: JarvisHuset?
++    var depot: JarvisDepot?
++    var labs: JarvisLabs?
++    var agenter: [JarvisAgent]?
++    var links: JarvisLinks?
++    var mangler: [String]?
++
++    enum CodingKeys: String, CodingKey {
++        case version, hentet, venter, breve, huset, depot, labs, agenter, links, mangler
++    }
++
++    init() {}
++
++    init(from decoder: Decoder) throws {
++        let beholder = try decoder.container(keyedBy: CodingKeys.self)
++        version = try? beholder.decodeIfPresent(Int.self, forKey: .version)
++        hentet = try? beholder.decodeIfPresent(String.self, forKey: .hentet)
++        venter = try? beholder.decodeIfPresent(JarvisVenter.self, forKey: .venter)
++        breve = try? beholder.decodeIfPresent(JarvisBreve.self, forKey: .breve)
++        huset = try? beholder.decodeIfPresent(JarvisHuset.self, forKey: .huset)
++        depot = try? beholder.decodeIfPresent(JarvisDepot.self, forKey: .depot)
++        labs = try? beholder.decodeIfPresent(JarvisLabs.self, forKey: .labs)
++        agenter = try? beholder.decodeIfPresent([JarvisAgent].self, forKey: .agenter)
++        links = try? beholder.decodeIfPresent(JarvisLinks.self, forKey: .links)
++        mangler = try? beholder.decodeIfPresent([String].self, forKey: .mangler)
++    }
++}
++
++// MARK: - Tilstanden i appen
++
++@MainActor
++final class JarvisState: ObservableObject {
++    static let shared = JarvisState()
++
++    /// Seneste svar fra broen (nil indtil første svar).
++    @Published var svar: JarvisSvar?
++    /// Hvornår svaret kom.
++    @Published var sidst: Date?
++    /// Sat når broen ikke kunne nås — teksten Lauritz ser er «Jarvis er ikke at nå».
++    @Published var fejl: String?
++    /// Sandt mens et kald er undervejs.
++    @Published var henter: Bool = false
++
++    private init() {}
++
++    /// Adressen fra indstillingerne, renset for blanktegn. Tom = Jarvis er slået fra.
++    static var adresse: String {
++        Defaults[.jarvisAdresse].trimmingCharacters(in: .whitespacesAndNewlines)
++    }
++
++    var erSlaaetTil: Bool { !JarvisState.adresse.isEmpty }
++
++    var venterAntal: Int { max(0, svar?.venter?.antal ?? 0) }
++
++    var breveAntal: Int { max(0, svar?.breve?.antal ?? 0) }
++
++    /// Lille mærke i den sammenfoldede notch: kun når huset faktisk venter på ham.
++    var visKompaktMaerke: Bool { erSlaaetTil && fejl == nil && venterAntal > 0 }
++
++    /// Linket der åbnes når han klikker på det seneste kort — ellers kommandocentret.
++    var senesteLink: URL? {
++        if let tekst = svar?.venter?.seneste?.link, let url = URL(string: tekst) { return url }
++        return kommandocenterLink
++    }
++
++    var kommandocenterLink: URL? {
++        if let tekst = svar?.links?.kommandocenter, let url = URL(string: tekst) { return url }
++        if let tekst = svar?.links?.app, let url = URL(string: tekst) { return url }
++        return nil
++    }
++
++    func modtog(_ nyt: JarvisSvar) {
++        svar = nyt
++        sidst = Date()
++        fejl = nil
++    }
++
++    func fejlede() {
++        fejl = NSLocalizedString("Jarvis can't be reached", comment: "Quiet error line in the Jarvis view")
++    }
++
++    func nulstil() {
++        svar = nil
++        sidst = nil
++        fejl = nil
++        henter = false
++    }
++}
+diff --git a/boringNotch/Jarvis/JarvisPoller.swift b/boringNotch/Jarvis/JarvisPoller.swift
+new file mode 100644
+index 0000000..214baf4
+--- /dev/null
++++ b/boringNotch/Jarvis/JarvisPoller.swift
+@@ -0,0 +1,102 @@
++//
++//  JarvisPoller.swift
++//  boringNotch
++//
++//  Henter husets ene læse-rute (GET /notch) hvert 60. sekund — aldrig
++//  oftere end hvert 30. — og kun når «Jarvis-adresse» er sat i
++//  indstillingerne. Skriver aldrig til broen. Fejl er stille: ingen
++//  advarsler, ingen genforsøgs-storm, næste forsøg om et minut.
++//
++
++import Foundation
++
++@MainActor
++final class JarvisPoller {
++    static let shared = JarvisPoller()
++
++    /// Hvileperiode mellem to kald. Gulvet på 30 sekunder er husets regel.
++    private static let sekunderMellemKald: TimeInterval = 60
++    private static let mindsteSekunder: TimeInterval = 30
++    /// Broen lover ≤ 2 kB; vi afviser alt der er vildt større.
++    private static let stoersteSvar = 256 * 1024
++
++    private var loekke: Task<Void, Never>?
++    private let session: URLSession
++
++    private init() {
++        let opsaetning = URLSessionConfiguration.ephemeral
++        opsaetning.requestCachePolicy = .reloadIgnoringLocalCacheData
++        opsaetning.urlCache = nil
++        opsaetning.timeoutIntervalForRequest = 5
++        opsaetning.timeoutIntervalForResource = 8
++        opsaetning.waitsForConnectivity = false
++        opsaetning.httpShouldSetCookies = false
++        opsaetning.httpAdditionalHeaders = ["Accept": "application/json"]
++        session = URLSession(configuration: opsaetning)
++    }
++
++    /// Starter den stille løkke. Sikker at kalde flere gange.
++    func start() {
++        guard loekke == nil else { return }
++        loekke = Task { @MainActor in
++            while !Task.isCancelled {
++                await JarvisPoller.shared.hentEnGang()
++                let hvile = max(JarvisPoller.mindsteSekunder, JarvisPoller.sekunderMellemKald)
++                try? await Task.sleep(for: .seconds(hvile))
++            }
++        }
++    }
++
++    func stop() {
++        loekke?.cancel()
++        loekke = nil
++    }
++
++    /// Ét kald. Returnerer sandt når broen svarede — bruges af «Test»-knappen.
++    @discardableResult
++    func hentEnGang() async -> Bool {
++        let state = JarvisState.shared
++        let adresse = JarvisState.adresse
++
++        guard !adresse.isEmpty else {
++            state.nulstil()
++            return false
++        }
++        guard let url = URL(string: adresse),
++              let skema = url.scheme?.lowercased(),
++              skema == "http" || skema == "https",
++              url.host != nil
++        else {
++            state.fejlede()
++            return false
++        }
++
++        var foresporgsel = URLRequest(url: url)
++        foresporgsel.httpMethod = "GET"
++        foresporgsel.timeoutInterval = 5
++        foresporgsel.cachePolicy = .reloadIgnoringLocalCacheData
++
++        state.henter = true
++        defer { state.henter = false }
++
++        do {
++            let (data, svar) = try await session.data(for: foresporgsel)
++            guard let http = svar as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
++                state.fejlede()
++                return false
++            }
++            guard data.count <= JarvisPoller.stoersteSvar else {
++                state.fejlede()
++                return false
++            }
++            let afkoder = JSONDecoder()
++            afkoder.keyDecodingStrategy = .convertFromSnakeCase
++            let nyt = try afkoder.decode(JarvisSvar.self, from: data)
++            state.modtog(nyt)
++            return true
++        } catch {
++            state.fejlede()
++            return false
++        }
++    }
++}
+diff --git a/boringNotch/Jarvis/JarvisSettingsView.swift b/boringNotch/Jarvis/JarvisSettingsView.swift
+new file mode 100644
+index 0000000..8085d73
+--- /dev/null
++++ b/boringNotch/Jarvis/JarvisSettingsView.swift
+@@ -0,0 +1,84 @@
++//
++//  JarvisSettingsView.swift
++//  boringNotch
++//
++//  Indstillingen «Jarvis»: adressen på husets læse-rute. Tom adresse =
++//  fanen og mærket er væk, og der hentes intet.
++//
++
++import Defaults
++import SwiftUI
++
++struct JarvisSettings: View {
++    @Default(.jarvisAdresse) var jarvisAdresse
++    @ObservedObject private var jarvis = JarvisState.shared
++
++    @State private var proever: Bool = false
++    @State private var proeveSvar: String?
++
++    private var adresse: String {
++        jarvisAdresse.trimmingCharacters(in: .whitespacesAndNewlines)
++    }
++
++    var body: some View {
++        Form {
++            Section {
++                TextField(
++                    "Jarvis address",
++                    text: $jarvisAdresse,
++                    prompt: Text(verbatim: "http://<din-tailscale-adresse>:8000/notch")
++                )
++                .onSubmit { proev() }
++
++                HStack(spacing: 10) {
++                    Button("Test") { proev() }
++                        .disabled(adresse.isEmpty || proever)
++                    if proever {
++                        ProgressView()
++                            .controlSize(.small)
++                    }
++                    if let proeveSvar = proeveSvar {
++                        Text(proeveSvar)
++                            .font(.caption)
++                            .foregroundColor(.secondary)
++                    }
++                    Spacer()
++                }
++            } header: {
++                HStack {
++                    Text("Jarvis")
++                }
++            } footer: {
++                Text("The house's own bridge, read only: the notch never writes anything. The tab appears when the address is filled in.")
++                    .font(.caption)
++                    .foregroundColor(.secondary)
++            }
++        }
++        .onChange(of: jarvisAdresse) {
++            proeveSvar = nil
++            if adresse.isEmpty {
++                JarvisState.shared.nulstil()
++            }
++        }
++    }
++
++    private func proev() {
++        guard !adresse.isEmpty, !proever else { return }
++        proever = true
++        proeveSvar = nil
++        Task { @MainActor in
++            let svarede = await JarvisPoller.shared.hentEnGang()
++            proever = false
++            proeveSvar =
++                svarede
++                ? NSLocalizedString("Jarvis answered", comment: "Result of the Jarvis test button")
++                : NSLocalizedString("Jarvis can't be reached", comment: "Quiet error line in the Jarvis view")
++            if svarede { JarvisPoller.shared.start() }
++        }
++    }
++}
++
++#Preview {
++    JarvisSettings()
++        .frame(width: 600, height: 240)
++}
+diff --git a/boringNotch/Jarvis/JarvisView.swift b/boringNotch/Jarvis/JarvisView.swift
+new file mode 100644
+index 0000000..c550dfb
+--- /dev/null
++++ b/boringNotch/Jarvis/JarvisView.swift
+@@ -0,0 +1,372 @@
++//
++//  JarvisView.swift
++//  boringNotch
++//
++//  Jarvis-fanen i den udfoldede notch, og det lille mærke i den
++//  sammenfoldede. Alt der står her kommer i ord fra husets bro —
++//  det eneste tal på skærmen er antallet i mærket.
++//
++
++import AppKit
++import Defaults
++import SwiftUI
++
++// MARK: - Den udfoldede visning
++
++struct JarvisView: View {
++    @EnvironmentObject var vm: BoringViewModel
++    @ObservedObject private var jarvis = JarvisState.shared
++    @Default(.jarvisAdresse) private var jarvisAdresse
++
++    var body: some View {
++        Group {
++            if jarvisAdresse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
++                stilleLinje(Text("Jarvis is not set up yet"))
++            } else if let fejl = jarvis.fejl {
++                stilleLinje(Text(fejl))
++            } else if jarvis.svar == nil {
++                stilleLinje(Text("Asking the house…"))
++            } else {
++                indhold
++            }
++        }
++        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
++        .onAppear {
++            JarvisPoller.shared.start()
++        }
++    }
++
++    private func stilleLinje(_ tekst: Text) -> some View {
++        tekst
++            .font(.system(size: 13))
++            .foregroundStyle(.gray)
++            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
++    }
++
++    private var indhold: some View {
++        HStack(alignment: .top, spacing: 16) {
++            venstreSpalte
++                .frame(maxWidth: .infinity, alignment: .topLeading)
++            hoejreSpalte
++                .frame(width: 250, alignment: .topLeading)
++        }
++        .padding(.horizontal, 4)
++        .padding(.top, 2)
++    }
++
++    // MARK: Venstre: det huset venter på
++
++    private var venstreSpalte: some View {
++        VStack(alignment: .leading, spacing: 8) {
++            venterRaekke
++            if let seneste = jarvis.svar?.venter?.seneste, (seneste.titel?.isEmpty == false) {
++                senesteKort(seneste)
++            }
++            if let ord = ordEller(jarvis.svar?.breve?.ord), jarvis.breveAntal > 0 {
++                JarvisRaekke(ikon: "envelope.fill", tekst: ord, farve: .white)
++            }
++            husetRaekke
++            Spacer(minLength: 0)
++            bundLinje
++        }
++    }
++
++    private var venterRaekke: some View {
++        HStack(spacing: 8) {
++            ZStack {
++                Capsule()
++                    .fill(jarvis.venterAntal > 0 ? Color.effectiveAccent : Color.gray.opacity(0.25))
++                    .frame(width: jarvis.venterAntal > 9 ? 28 : 22, height: 20)
++                Text("\(jarvis.venterAntal)")
++                    .font(.system(size: 12, weight: .semibold, design: .rounded))
++                    .foregroundStyle(jarvis.venterAntal > 0 ? .white : .gray)
++            }
++            Text(ordEller(jarvis.svar?.venter?.ord) ?? NSLocalizedString("Waiting for you", comment: "Jarvis: cards waiting"))
++                .font(.system(size: 13, weight: .medium))
++                .foregroundStyle(jarvis.venterAntal > 0 ? .white : .gray)
++                .lineLimit(1)
++        }
++    }
++
++    private func senesteKort(_ seneste: JarvisSeneste) -> some View {
++        JarvisLinkRaekke(url: URL(string: seneste.link ?? "") ?? jarvis.kommandocenterLink) {
++            HStack(spacing: 6) {
++                Image(systemName: "rectangle.on.rectangle.angled")
++                    .font(.system(size: 10))
++                    .foregroundStyle(.gray)
++                Text(seneste.titel ?? "")
++                    .font(.system(size: 12))
++                    .foregroundStyle(.white)
++                    .lineLimit(1)
++                if let fra = ordEller(seneste.fra) {
++                    Text(verbatim: "·")
++                        .font(.system(size: 12))
++                        .foregroundStyle(.gray)
++                    Text(fra)
++                        .font(.system(size: 12))
++                        .foregroundStyle(.gray)
++                        .lineLimit(1)
++                }
++            }
++        }
++    }
++
++    @ViewBuilder
++    private var husetRaekke: some View {
++        if let huset = jarvis.svar?.huset, let seneste = ordEller(huset.seneste) ?? ordEller(huset.ord) {
++            HStack(spacing: 6) {
++                Image(systemName: "house.fill")
++                    .font(.system(size: 10))
++                    .foregroundStyle(tilstandsfarve(huset.tilstand))
++                Text(seneste)
++                    .font(.system(size: 12))
++                    .foregroundStyle(.gray)
++                    .lineLimit(1)
++                if let hvornaar = ordEller(huset.hvornaar) {
++                    Text(hvornaar)
++                        .font(.system(size: 11))
++                        .foregroundStyle(Color.gray.opacity(0.7))
++                        .lineLimit(1)
++                }
++            }
++        }
++    }
++
++    @ViewBuilder
++    private var bundLinje: some View {
++        HStack(spacing: 8) {
++            if let url = jarvis.kommandocenterLink {
++                JarvisLinkRaekke(url: url) {
++                    HStack(spacing: 5) {
++                        Image(systemName: "arrow.up.forward.app")
++                            .font(.system(size: 10))
++                        Text("Open the command center")
++                            .font(.system(size: 11))
++                    }
++                    .foregroundStyle(.gray)
++                }
++            }
++            if let mangler = jarvis.svar?.mangler?.first, !mangler.isEmpty {
++                HStack(spacing: 4) {
++                    Image(systemName: "exclamationmark.triangle")
++                        .font(.system(size: 9))
++                    Text(mangler)
++                        .font(.system(size: 11))
++                        .lineLimit(1)
++                }
++                .foregroundStyle(Color.gray.opacity(0.7))
++            }
++        }
++    }
++
++    // MARK: Højre: depot, laboratorier, agenter
++
++    private var hoejreSpalte: some View {
++        VStack(alignment: .leading, spacing: 8) {
++            depotRaekke
++            regnskabRaekke
++            if let ord = ordEller(jarvis.svar?.labs?.ord) {
++                JarvisRaekke(ikon: "flask.fill", tekst: ord, farve: .gray, linjer: 2)
++            }
++            Spacer(minLength: 0)
++            agentPrikker
++        }
++    }
++
++    @ViewBuilder
++    private var depotRaekke: some View {
++        if let depot = jarvis.svar?.depot, let vaerdi = ordEller(depot.vaerdiOrd) {
++            HStack(spacing: 6) {
++                Image(systemName: "chart.pie.fill")
++                    .font(.system(size: 10))
++                    .foregroundStyle(.gray)
++                Text(vaerdi)
++                    .font(.system(size: 13, weight: .medium))
++                    .foregroundStyle(.white)
++                    .lineLimit(1)
++                if let aendring = ordEller(depot.dagsaendringOrd) {
++                    Text(aendring)
++                        .font(.system(size: 12))
++                        .foregroundStyle(retningsfarve(depot.retning))
++                        .lineLimit(1)
++                }
++            }
++        }
++    }
++
++    @ViewBuilder
++    private var regnskabRaekke: some View {
++        if let regnskab = jarvis.svar?.depot?.naesteRegnskab,
++           let navn = ordEller(regnskab.ticker) ?? ordEller(regnskab.navn),
++           let naar = ordEller(regnskab.datoOrd) {
++            let saetning = String(
++                format: NSLocalizedString(
++                    "%1$@ reports earnings %2$@",
++                    comment: "Jarvis: next earnings, e.g. MU reports earnings tomorrow"
++                ),
++                navn, naar
++            )
++            HStack(spacing: 6) {
++                Image(systemName: "calendar")
++                    .font(.system(size: 10))
++                    .foregroundStyle(.gray)
++                Text(saetning)
++                    .font(.system(size: 12))
++                    .foregroundStyle(.white)
++                    .lineLimit(1)
++                if regnskab.foreloebig == true {
++                    Text("(preliminary)")
++                        .font(.system(size: 11))
++                        .foregroundStyle(.gray)
++                }
++            }
++        }
++    }
++
++    @ViewBuilder
++    private var agentPrikker: some View {
++        if let agenter = jarvis.svar?.agenter, !agenter.isEmpty {
++            HStack(spacing: 6) {
++                ForEach(Array(agenter.enumerated()), id: \.offset) { _, agent in
++                    Circle()
++                        .fill(agentfarve(agent.tilstand))
++                        .frame(width: 7, height: 7)
++                        .help(agentHjaelp(agent))
++                }
++            }
++        }
++    }
++
++    // MARK: Små hjælpere
++
++    private func agentHjaelp(_ agent: JarvisAgent) -> String {
++        let navn = ordEller(agent.navn) ?? "?"
++        if let ord = ordEller(agent.ord) { return "\(navn): \(ord)" }
++        if let tilstand = ordEller(agent.tilstand) { return "\(navn): \(tilstand)" }
++        return navn
++    }
++
++    private func ordEller(_ tekst: String?) -> String? {
++        guard let tekst = tekst?.trimmingCharacters(in: .whitespacesAndNewlines), !tekst.isEmpty else {
++            return nil
++        }
++        return tekst
++    }
++
++    private func retningsfarve(_ retning: String?) -> Color {
++        switch (retning ?? "").lowercased() {
++        case "op": return .green
++        case "ned": return .red
++        default: return .gray
++        }
++    }
++
++    private func tilstandsfarve(_ tilstand: String?) -> Color {
++        switch (tilstand ?? "").lowercased() {
++        case "broen er tavs": return .red
++        case "natten kører", "arbejder": return Color.effectiveAccent
++        default: return .gray
++        }
++    }
++
++    private func agentfarve(_ tilstand: String?) -> Color {
++        switch (tilstand ?? "").lowercased() {
++        case "arbejder": return .green
++        case "fejl": return .red
++        default: return .gray
++        }
++    }
++}
++
++// MARK: - Rækker
++
++private struct JarvisRaekke: View {
++    let ikon: String
++    let tekst: String
++    var farve: Color = .gray
++    var linjer: Int = 1
++
++    var body: some View {
++        HStack(alignment: .top, spacing: 6) {
++            Image(systemName: ikon)
++                .font(.system(size: 10))
++                .foregroundStyle(.gray)
++                .padding(.top, 2)
++            Text(tekst)
++                .font(.system(size: 12))
++                .foregroundStyle(farve)
++                .lineLimit(linjer)
++                .multilineTextAlignment(.leading)
++        }
++    }
++}
++
++/// En klikbar række der åbner web-appen i browseren. Notchen handler ikke selv.
++private struct JarvisLinkRaekke<Indhold: View>: View {
++    private let url: URL?
++    private let indhold: () -> Indhold
++    @State private var pegerPaa: Bool = false
++
++    init(url: URL?, @ViewBuilder indhold: @escaping () -> Indhold) {
++        self.url = url
++        self.indhold = indhold
++    }
++
++    var body: some View {
++        Button {
++            if let url = url { NSWorkspace.shared.open(url) }
++        } label: {
++            indhold()
++                .padding(.vertical, 3)
++                .padding(.horizontal, 6)
++                .background(
++                    RoundedRectangle(cornerRadius: 6)
++                        .fill(pegerPaa ? Color.gray.opacity(0.2) : .clear)
++                )
++                .contentShape(RoundedRectangle(cornerRadius: 6))
++        }
++        .buttonStyle(PlainButtonStyle())
++        .disabled(url == nil)
++        .onHover { peger in
++            withAnimation(.smooth(duration: 0.2)) { pegerPaa = peger }
++        }
++    }
++}
++
++// MARK: - Mærket i den sammenfoldede notch
++
++struct JarvisLukketMaerke: View {
++    @EnvironmentObject var vm: BoringViewModel
++    @ObservedObject private var jarvis = JarvisState.shared
++
++    var body: some View {
++        HStack {
++            Rectangle()
++                .fill(.clear)
++                .frame(
++                    width: max(0, vm.effectiveClosedNotchHeight - 12),
++                    height: max(0, vm.effectiveClosedNotchHeight - 12)
++                )
++            Rectangle()
++                .fill(.black)
++                .frame(width: vm.closedNotchSize.width - 20)
++            HStack(spacing: 3) {
++                Image(systemName: "brain.head.profile")
++                    .font(.system(size: 10))
++                Text("\(jarvis.venterAntal)")
++                    .font(.system(size: 11, weight: .semibold, design: .rounded))
++            }
++            .foregroundStyle(Color.effectiveAccent)
++            .frame(width: max(0, vm.effectiveClosedNotchHeight - 12) + 12, alignment: .leading)
++        }
++        .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
++    }
++}
++
++#Preview {
++    JarvisView()
++        .environmentObject(BoringViewModel())
++        .frame(width: 600, height: 150)
++        .background(.black)
++        .preferredColorScheme(.dark)
++}
+diff --git a/boringNotch/Localizable.xcstrings b/boringNotch/Localizable.xcstrings
+index fa34399..5a458d0 100644
+--- a/boringNotch/Localizable.xcstrings
++++ b/boringNotch/Localizable.xcstrings
+@@ -1,6 +1,226 @@
+ {
+   "sourceLanguage" : "en",
+   "strings" : {
++    "Jarvis address" : {
++      "localizations" : {
++        "da" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis-adresse"
++          }
++        },
++        "en" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis-adresse"
++          }
++        },
++        "en-GB" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis-adresse"
++          }
++        }
++      }
++    },
++    "Jarvis answered" : {
++      "localizations" : {
++        "da" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis svarede"
++          }
++        },
++        "en" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis svarede"
++          }
++        },
++        "en-GB" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis svarede"
++          }
++        }
++      }
++    },
++    "Jarvis can't be reached" : {
++      "localizations" : {
++        "da" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis er ikke at nå"
++          }
++        },
++        "en" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis er ikke at nå"
++          }
++        },
++        "en-GB" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis er ikke at nå"
++          }
++        }
++      }
++    },
++    "Jarvis is not set up yet" : {
++      "localizations" : {
++        "da" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis er ikke sat op endnu"
++          }
++        },
++        "en" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis er ikke sat op endnu"
++          }
++        },
++        "en-GB" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Jarvis er ikke sat op endnu"
++          }
++        }
++      }
++    },
++    "Asking the house…" : {
++      "localizations" : {
++        "da" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Spørger huset …"
++          }
++        },
++        "en" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Spørger huset …"
++          }
++        },
++        "en-GB" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Spørger huset …"
++          }
++        }
++      }
++    },
++    "Waiting for you" : {
++      "localizations" : {
++        "da" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "venter på dig"
++          }
++        },
++        "en" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "venter på dig"
++          }
++        },
++        "en-GB" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "venter på dig"
++          }
++        }
++      }
++    },
++    "Open the command center" : {
++      "localizations" : {
++        "da" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Åbn Kommandocenter"
++          }
++        },
++        "en" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Åbn Kommandocenter"
++          }
++        },
++        "en-GB" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Åbn Kommandocenter"
++          }
++        }
++      }
++    },
++    "%1$@ reports earnings %2$@" : {
++      "localizations" : {
++        "da" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "%1$@ aflægger regnskab %2$@"
++          }
++        },
++        "en" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "%1$@ aflægger regnskab %2$@"
++          }
++        },
++        "en-GB" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "%1$@ aflægger regnskab %2$@"
++          }
++        }
++      }
++    },
++    "(preliminary)" : {
++      "localizations" : {
++        "da" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "(foreløbig)"
++          }
++        },
++        "en" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "(foreløbig)"
++          }
++        },
++        "en-GB" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "(foreløbig)"
++          }
++        }
++      }
++    },
++    "The house's own bridge, read only: the notch never writes anything. The tab appears when the address is filled in." : {
++      "localizations" : {
++        "da" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Husets egen bro, kun læsning: notchen skriver aldrig noget. Fanen kommer frem når adressen er skrevet ind."
++          }
++        },
++        "en" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Husets egen bro, kun læsning: notchen skriver aldrig noget. Fanen kommer frem når adressen er skrevet ind."
++          }
++        },
++        "en-GB" : {
++          "stringUnit" : {
++            "state" : "translated",
++            "value" : "Husets egen bro, kun læsning: notchen skriver aldrig noget. Fanen kommer frem når adressen er skrevet ind."
++          }
++        }
++      }
++    },
+     "" : {
+       "localizations" : {
+         "ar" : {
+diff --git a/boringNotch/boringNotchApp.swift b/boringNotch/boringNotchApp.swift
+index ac1b936..d37a137 100644
+--- a/boringNotch/boringNotchApp.swift
++++ b/boringNotch/boringNotchApp.swift
+@@ -422,6 +422,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
+ 
+         setupDragDetectors()
+ 
++        // JARVIS: stille polling af husets læse-rute (gør intet når adressen er tom)
++        JarvisPoller.shared.start()
++
+         if coordinator.firstLaunch {
+             DispatchQueue.main.async {
+                 self.showOnboardingWindow()
+diff --git a/boringNotch/components/Notch/BoringHeader.swift b/boringNotch/components/Notch/BoringHeader.swift
+index b46cbeb..cb42722 100644
+--- a/boringNotch/components/Notch/BoringHeader.swift
++++ b/boringNotch/components/Notch/BoringHeader.swift
+@@ -16,7 +16,8 @@ struct BoringHeader: View {
+     var body: some View {
+         HStack(spacing: 0) {
+             HStack {
+-                if (!tvm.isEmpty || coordinator.alwaysShowTabs) && Defaults[.boringShelf] {
++                if ((!tvm.isEmpty || coordinator.alwaysShowTabs) && Defaults[.boringShelf])
++                    || !Defaults[.jarvisAdresse].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                     TabSelectionView()
+                 } else if vm.notchState == .open {
+                     EmptyView()
+diff --git a/boringNotch/components/Settings/SettingsView.swift b/boringNotch/components/Settings/SettingsView.swift
+index cff23f3..4797fc4 100644
+--- a/boringNotch/components/Settings/SettingsView.swift
++++ b/boringNotch/components/Settings/SettingsView.swift
+@@ -54,6 +54,9 @@ struct SettingsView: View {
+                 NavigationLink(value: "Shortcuts") {
+                     Label("Shortcuts", systemImage: "keyboard")
+                 }
++                NavigationLink(value: "Jarvis") {
++                    Label("Jarvis", systemImage: "brain.head.profile")
++                }
+                 // NavigationLink(value: "Extensions") {
+                 //     Label("Extensions", systemImage: "puzzlepiece.extension")
+                 // }
+@@ -87,6 +90,8 @@ struct SettingsView: View {
+                     Shelf()
+                 case "Shortcuts":
+                     Shortcuts()
++                case "Jarvis":
++                    JarvisSettings()
+                 case "Extensions":
+                     GeneralSettings()
+                 case "Advanced":
+diff --git a/boringNotch/components/Tabs/TabSelectionView.swift b/boringNotch/components/Tabs/TabSelectionView.swift
+index b99d4af..d472cdf 100644
+--- a/boringNotch/components/Tabs/TabSelectionView.swift
++++ b/boringNotch/components/Tabs/TabSelectionView.swift
+@@ -5,6 +5,7 @@
+ //  Created by Hugo Persson on 2024-08-25.
+ //
+ 
++import Defaults
+ import SwiftUI
+ 
+ struct TabModel: Identifiable {
+@@ -19,12 +20,24 @@ let tabs = [
+     TabModel(label: "Shelf", icon: "tray.fill", view: .shelf)
+ ]
+ 
++// Jarvis: egen fane, kun når adressen er skrevet i indstillingerne.
++let jarvisTab = TabModel(label: "Jarvis", icon: "brain.head.profile", view: .jarvis)
++
++/// Fanerne der faktisk skal vises lige nu.
++func synligeTabs() -> [TabModel] {
++    var liste = tabs.filter { $0.view != .shelf || Defaults[.boringShelf] }
++    if !Defaults[.jarvisAdresse].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
++        liste.append(jarvisTab)
++    }
++    return liste
++}
++
+ struct TabSelectionView: View {
+     @ObservedObject var coordinator = BoringViewCoordinator.shared
+     @Namespace var animation
+     var body: some View {
+         HStack(spacing: 0) {
+-            ForEach(tabs) { tab in
++            ForEach(synligeTabs()) { tab in
+                     TabButton(label: tab.label, icon: tab.icon, selected: coordinator.currentView == tab.view) {
+                         withAnimation(.smooth) {
+                             coordinator.currentView = tab.view
+diff --git a/boringNotch/enums/generic.swift b/boringNotch/enums/generic.swift
+index e70b459..75eaf97 100644
+--- a/boringNotch/enums/generic.swift
++++ b/boringNotch/enums/generic.swift
+@@ -27,6 +27,7 @@ public enum NotchState {
+ public enum NotchViews {
+     case home
+     case shelf
++    case jarvis
+ }
+ 
+ enum SettingsEnum {
+diff --git a/boringNotch/models/Constants.swift b/boringNotch/models/Constants.swift
+index 8477434..061a668 100644
+--- a/boringNotch/models/Constants.swift
++++ b/boringNotch/models/Constants.swift
+@@ -199,4 +199,8 @@ extension Defaults.Keys {
+     }
+ 
+     static let didClearLegacyURLCacheV1 = Key<Bool>("didClearLegacyURLCache_v1", default: false)
++
++    // MARK: Jarvis
++    // Adressen på husets læse-rute (GET /notch). Tom = Jarvis er slået fra.
++    static let jarvisAdresse = Key<String>("jarvisAdresse", default: "")
+ }
+-- 
+2.53.0
+
