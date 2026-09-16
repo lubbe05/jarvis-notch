@@ -157,12 +157,22 @@ codesign -dvv /Applications/boringNotch.app/Contents/Frameworks/MediaRemoteAdapt
 Begge skal svare `TeamIdentifier=not set`. Står der et team-id i den nederste,
 er omsigneringen ikke slået igennem — kør kommandoen igen med `sudo`.
 
-*Byggemaskinen gør nu det samme af sig selv.* Trinnet **«Signér alle indlejrede
-dele ad hoc»** i `jarvis_build.yml` signerer hver eneste indlejret binær om
-indefra og ud efter bygget, tjekker bagefter at ingen af dem har et team-id, og
-**lader bygget stå rødt og udgiver ingenting**, hvis en af dem gør. Så en app,
-du henter fra `releases/latest`, skulle ikke have problemet. Kommandoen ovenfor
-er håndkuren, hvis du sidder med en ældre kopi.
+*Byggemaskinen gør det samme af sig selv fra og med 16/9.* Trinnet **«Signér
+alle indlejrede dele ad hoc»** i `jarvis_build.yml` signerer hver eneste
+indlejret binær om indefra og ud efter bygget, tjekker bagefter at ingen af dem
+har et team-id, og **lader bygget stå rødt og udgiver ingenting**, hvis en af
+dem gør.
+
+**Men det trin er endnu ikke kørt.** Byggene stoppede 16/9 kl. ca. 09:00 UTC —
+efter alt at dømme fordi de gratis Actions-timer er brugt op (se **«Hvis timerne
+er brugt op»** nedenfor). Rettelsen ligger klar i repoet, men den udgivelse, der
+står på `releases/latest` lige nu (`jarvis-v20260916-22f56de`), er bygget
+**før** den. Det er præcis den app, der falder ved start.
+
+Så indtil et nyt byg er kommet igennem: hent roligt den udgivelse, der er, og
+kør de to kommandoer ovenfor på den. Det er den samme kur, byggemaskinen ellers
+ville have udført for dig. Du kan se på udgivelsens `commit:`-linje, om du har
+en, der er bygget efter rettelsen.
 
 ### Nyt byg, når der er rettet noget
 
@@ -187,7 +197,15 @@ to gange.
 
 Løber de gratis timer tør, stopper byggene uden varsel: en ny commit på grenen
 `jarvis` får ingen kørsel, `build-logs/latest.md` bliver ikke opdateret, og
-Actions-siden siger noget om at betalingen mangler. Så er der to veje.
+Actions-siden siger noget om at betalingen mangler.
+
+*Sådan så det ud 16/9:* sidste byggelog var `22f56de` fra kl. 08:59 UTC. Derefter
+blev `9d25319` og `a2f50be` skubbet til grenen uden `[skip ci]` — og ingen af
+dem fik en kørsel eller en byggelog, heller ikke efter en halv time. Regnestykket
+passer: GitHubs gratis konto giver 2.000 minutter om måneden, og macOS tæller
+10×, så der er kun plads til et par timers Mac-byg i alt.
+
+Der er to veje.
 
 **A. Gør repoet offentligt — så er Actions gratis.** GitHub tager ikke betaling
 for Actions i offentlige repoer, hverken for Linux eller macOS. Fremgangsmåden:
