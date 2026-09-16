@@ -169,16 +169,16 @@ indlejret binær om indefra og ud efter bygget, tjekker bagefter at ingen af dem
 har et team-id, og **lader bygget stå rødt og udgiver ingenting**, hvis en af
 dem gør.
 
-**Men det trin er endnu ikke kørt.** Byggene stoppede 16/9 kl. ca. 09:00 UTC —
-efter alt at dømme fordi de gratis Actions-timer er brugt op (se **«Hvis timerne
-er brugt op»** nedenfor). Rettelsen ligger klar i repoet, men den udgivelse, der
-står på `releases/latest` lige nu (`jarvis-v20260916-22f56de`), er bygget
-**før** den. Det er præcis den app, der falder ved start.
+**Og det trin har nu kørt.** Byggene stod stille 16/9 mellem kl. 09 og 11 UTC,
+fordi de gratis Actions-timer var brugt op på det dengang private repo. Da
+Lauritz gjorde repoet offentligt kl. ca. 10:50 UTC, kørte bygget igennem — grønt
+hele vejen, også trinnet «Signér alle indlejrede dele ad hoc», der aldrig havde
+nået at køre før. Det blev samtidig repoets **allerførste** udgivelse:
+`jarvis-v20260916-fe6dcb8` (tidligere byg lagde kun en artifact i Actions-fanen,
+aldrig en release — så der stod ingenting på `releases/latest`).
 
-Så indtil et nyt byg er kommet igennem: hent roligt den udgivelse, der er, og
-kør de to kommandoer ovenfor på den. Det er den samme kur, byggemaskinen ellers
-ville have udført for dig. Du kan se på udgivelsens `commit:`-linje, om du har
-en, der er bygget efter rettelsen.
+Hent den udgivelse. Kør alligevel de to kommandoer ovenfor på den, første gang:
+det koster ingenting, og de fjerner samtidig karantænen.
 
 ### Nyt byg, når der er rettet noget
 
@@ -200,6 +200,10 @@ eget `cicd.yml` er slået fra i vores kopi, så vi ikke betaler for det samme by
 to gange.
 
 ### Hvis timerne er brugt op
+
+**Det er løst: repoet er offentligt fra 16/9, og så er Actions gratis — også
+macOS.** Afsnittet her står som forklaring på, hvad der skete, og hvad man gør,
+hvis det nogensinde sker igen.
 
 Løber de gratis timer tør, stopper byggene uden varsel: en ny commit på grenen
 `jarvis` får ingen kørsel, `build-logs/latest.md` bliver ikke opdateret, og
