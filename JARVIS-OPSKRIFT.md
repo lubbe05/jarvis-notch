@@ -117,10 +117,11 @@ Vil du have nyt fra opstrøms, tager vi det i huset og bygger igen.
 
 Hver gang huset skubber til grenen `jarvis`, starter bygget af sig selv
 (og du kan selv starte et: Actions → «Jarvis: byg appen» → **Run workflow**).
-Rettelser der kun rører tekst og opskrifter skubbes med `[skip ci]` i
-commit-beskeden, så de ikke koster en hel Mac-byggetur — derfor kan den
-nyeste commit godt være uden kørsel; tag så den nyeste kørsel der er.
 Så henter du bare den nyeste artifact og gentager punkt 1-3 og 6.
+
+Rettelser der kun rører tekst og opskrifter skubbes med `[skip ci]` i
+commit-beskeden, så de ikke koster en hel Mac-byggetur. Derfor kan den nyeste
+commit godt stå uden kørsel — tag så den nyeste kørsel der er.
 
 ### Hvad bygget koster
 
