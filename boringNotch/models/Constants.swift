@@ -59,6 +59,15 @@ enum SneakPeekStyle: String, CaseIterable, Identifiable, Defaults.Serializable {
     var id: String { self.rawValue }
 }
 
+// Jarvis: hvor et link fra notchen skal åbne — i Jarvis-appen på Mac'en
+// eller i web-appen i browseren.
+enum JarvisAabnI: String, CaseIterable, Identifiable, Defaults.Serializable {
+    case app = "The Jarvis app on this Mac"
+    case web = "The web app"
+
+    var id: String { rawValue }
+}
+
 // Action to perform when Option (⌥) is held while pressing media keys
 enum OptionKeyAction: String, CaseIterable, Identifiable, Defaults.Serializable {
     case openSettings = "Open System Settings"
@@ -203,4 +212,9 @@ extension Defaults.Keys {
     // MARK: Jarvis
     // Adressen på husets læse-rute (GET /notch). Tom = Jarvis er slået fra.
     static let jarvisAdresse = Key<String>("jarvisAdresse", default: "")
+    // Hvor notchens links åbnes. Standard: Jarvis-appen på denne Mac, med
+    // web-appen som automatisk redning hvis appen hverken kører eller findes.
+    static let jarvisAabnI = Key<JarvisAabnI>("jarvisAabnI", default: .app)
+    // Navnet på Jarvis-appen på Mac'en (eller dens bundle-id).
+    static let jarvisAppNavn = Key<String>("jarvisAppNavn", default: "Jarvis")
 }

@@ -7,6 +7,7 @@
 //  alt er optional og afkodningen giver op i stilhed felt for felt.
 //
 
+import AppKit
 import Defaults
 import Foundation
 
@@ -163,5 +164,76 @@ final class JarvisState: ObservableObject {
         sidst = nil
         fejl = nil
         henter = false
+    }
+
+    // MARK: - Åbning: appen på Mac'en eller web-appen
+
+    /// Den ene dør ud af notchen. Alle klikbare rækker i Jarvis-fanen går
+    /// herigennem, så valget i indstillingerne gælder overalt.
+    ///
+    /// Ved valget «Jarvis-appen på denne Mac»:
+    ///   1. kører den allerede → løft den frem (ingen browser overhovedet)
+    ///   2. ellers: find den på disken og start den
+    ///   3. lykkes intet → fald tilbage til web-linket, så klikket aldrig dør i stilhed.
+    ///
+    /// Et bestemt kort kan kun åbnes i web-appen; appen har intet URL-skema,
+    /// så vi løfter den blot frem.
+    func aabn(_ link: URL?) {
+        guard Defaults[.jarvisAabnI] == .app else {
+            aabnWeb(link)
+            return
+        }
+        let navn = Defaults[.jarvisAppNavn].trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !navn.isEmpty else {
+            aabnWeb(link)
+            return
+        }
+        if loeftFremHvisKoerende(navn) { return }
+        guard let appURL = findAppPaaDisken(navn) else {
+            aabnWeb(link)
+            return
+        }
+        let opsaetning = NSWorkspace.OpenConfiguration()
+        opsaetning.activates = true
+        NSWorkspace.shared.openApplication(at: appURL, configuration: opsaetning) { [weak self] _, fejl in
+            guard fejl != nil else { return }
+            Task { @MainActor in self?.aabnWeb(link) }
+        }
+    }
+
+    private func aabnWeb(_ link: URL?) {
+        guard let link = link else { return }
+        NSWorkspace.shared.open(link)
+    }
+
+    /// Sandt hvis en kørende app matcher navnet (eller bundle-id'et) og blev løftet frem.
+    private func loeftFremHvisKoerende(_ navn: String) -> Bool {
+        let soegt = navn.lowercased()
+        let koerende = NSWorkspace.shared.runningApplications
+        let fundet =
+            koerende.first { ($0.localizedName ?? "").lowercased() == soegt }
+            ?? koerende.first { ($0.bundleIdentifier ?? "").lowercased() == soegt }
+            ?? koerende.first { app in
+                guard app.activationPolicy == .regular else { return false }
+                return (app.localizedName ?? "").lowercased().contains(soegt)
+                    || (app.bundleIdentifier ?? "").lowercased().contains(soegt)
+            }
+        guard let app = fundet else { return false }
+        return app.activate(options: [.activateAllWindows])
+    }
+
+    /// Leder efter appen på disken: først som bundle-id, så som navn i de to Programmer-mapper.
+    private func findAppPaaDisken(_ navn: String) -> URL? {
+        if navn.contains("."),
+           let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: navn)
+        {
+            return url
+        }
+        let filnavn = navn.hasSuffix(".app") ? navn : navn + ".app"
+        var steder = [URL(fileURLWithPath: "/Applications").appendingPathComponent(filnavn)]
+        if let hjem = FileManager.default.urls(for: .applicationDirectory, in: .userDomainMask).first {
+            steder.append(hjem.appendingPathComponent(filnavn))
+        }
+        return steder.first { FileManager.default.fileExists(atPath: $0.path) }
     }
 }

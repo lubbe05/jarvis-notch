@@ -77,7 +77,12 @@ struct ContentView: View {
             && (Defaults[.showNotHumanFace] || jarvis.visKompaktMaerke)  // JARVIS
             && !vm.hideOnClosed
         {
-            chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
+            // JARVIS: mærket har sit eget fodaftryk — venstre felt + prikken +
+            // HStack'ens to mellemrum à 8 pt — så notchen ikke bliver bredere
+            // end mærket faktisk fylder (ansigtets mål er ikke mærkets).
+            chinWidth += jarvis.visKompaktMaerke
+                ? JarvisLukketMaerke.ekstraBredde(lukketHoejde: vm.effectiveClosedNotchHeight)
+                : (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
         }
 
         return chinWidth

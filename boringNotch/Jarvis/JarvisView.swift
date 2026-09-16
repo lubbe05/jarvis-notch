@@ -314,7 +314,10 @@ private struct JarvisLinkRaekke<Indhold: View>: View {
 
     var body: some View {
         Button {
-            if let url = url { NSWorkspace.shared.open(url) }
+            // Én fælles dør: JarvisState.aabn respekterer valget
+            // «Jarvis-appen på denne Mac» / «Web-appen» i indstillingerne.
+            let link = url
+            Task { @MainActor in JarvisState.shared.aabn(link) }
         } label: {
             indhold()
                 .padding(.vertical, 3)
@@ -335,31 +338,71 @@ private struct JarvisLinkRaekke<Indhold: View>: View {
 
 // MARK: - Mærket i den sammenfoldede notch
 
+/// Målene herunder er læst ud af husets egen kode, ikke gennem gennemsyn af et skilt:
+///
+/// • `getClosedNotchSize()` (boringNotch/sizing/matters.swift:39-77) giver den lukkede
+///   notch: bredden er skærmens hul (standard 185 pt), højden er `Defaults[.notchHeight]`
+///   / `screen.safeAreaInsets.top` / menulinjens højde — altså omkring 32-38 pt.
+/// • `BoringViewModel.effectiveClosedNotchHeight` (models/BoringViewModel.swift:106-110)
+///   er den højde igen, eller 0 når notchen er skjult i fuldskærm.
+/// • Appens egne elementer i den lukkede notch bruger ét mål:
+///   `max(0, effectiveClosedNotchHeight - 12)` i både bredde og højde —
+///   `BoringFaceAnimation()` (ContentView.swift:376-393) og albumbilledet plus
+///   visualizeren i `MusicLiveActivity()` (ContentView.swift:395-492).
+///   Midterfeltet, der dækker selve hullet, er `closedNotchSize.width - 20`.
+/// • Chin-bredden (ContentView.swift:63-82) lægger `2 * (h - 12) + 20` oveni, altså
+///   venstre element + højre element + HStack'ens to mellemrum à 8 pt.
+///
+/// Fejlen 16/9: det gamle mærke satte et SF-symbol (`brain.head.profile`) i en
+/// `.frame(width: (h - 12) + 12, alignment: .leading)`. En fast ramme klipper ikke —
+/// symbolet plus tallet er bredere end rammen, så de væltede ud over notchens
+/// `clipShape(NotchShape)` og hovedet blev skåret midt over.
+/// Kuren: ingen SF-symbol. En cirkel med tallet inden i, nøjagtig `h - 12` i diameter,
+/// så mærket har samme fodaftryk som husets egne elementer og aldrig kan flyde over.
 struct JarvisLukketMaerke: View {
     @EnvironmentObject var vm: BoringViewModel
     @ObservedObject private var jarvis = JarvisState.shared
 
+    /// Prikkens diameter: samme mål som husets egne elementer i den lukkede notch.
+    static func diameter(lukketHoejde: CGFloat) -> CGFloat {
+        max(8, lukketHoejde - 12)
+    }
+
+    /// Hvor meget bredere den lukkede notch bliver af mærket:
+    /// det tomme felt til venstre + prikken + HStack'ens to mellemrum à 8 pt.
+    static func ekstraBredde(lukketHoejde: CGFloat) -> CGFloat {
+        max(0, lukketHoejde - 12) + diameter(lukketHoejde: lukketHoejde) + 16
+    }
+
     var body: some View {
-        HStack {
+        let hoejde = vm.effectiveClosedNotchHeight
+        let d = Self.diameter(lukketHoejde: hoejde)
+        HStack(spacing: 8) {
+            // Venstre: tomt felt i samme mål som appens egne elementer.
             Rectangle()
                 .fill(.clear)
-                .frame(
-                    width: max(0, vm.effectiveClosedNotchHeight - 12),
-                    height: max(0, vm.effectiveClosedNotchHeight - 12)
-                )
+                .frame(width: max(0, hoejde - 12), height: max(0, hoejde - 12))
+            // Midten: selve hullet i skærmen.
             Rectangle()
                 .fill(.black)
-                .frame(width: vm.closedNotchSize.width - 20)
-            HStack(spacing: 3) {
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 10))
-                Text("\(jarvis.venterAntal)")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .frame(width: max(0, vm.closedNotchSize.width - 20))
+            // Højre: prikken med antallet. Intet når huset ikke venter på ham.
+            ZStack {
+                if jarvis.venterAntal > 0 {
+                    Circle()
+                        .fill(Color.effectiveAccent)
+                    Text(verbatim: "\(jarvis.venterAntal)")
+                        .font(.system(size: max(7, d * 0.5), weight: .semibold, design: .monospaced))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.4)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 1)
+                }
             }
-            .foregroundStyle(Color.effectiveAccent)
-            .frame(width: max(0, vm.effectiveClosedNotchHeight - 12) + 12, alignment: .leading)
+            .frame(width: d, height: d)
         }
-        .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
+        .frame(height: hoejde, alignment: .center)
     }
 }
 

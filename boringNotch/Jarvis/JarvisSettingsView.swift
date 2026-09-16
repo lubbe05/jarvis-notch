@@ -4,6 +4,7 @@
 //
 //  Indstillingen «Jarvis»: adressen på husets læse-rute. Tom adresse =
 //  fanen og mærket er væk, og der hentes intet.
+//  Dertil: hvor et klik i notchen skal åbne — Jarvis-appen på Mac'en eller web-appen.
 //
 
 import Defaults
@@ -11,6 +12,8 @@ import SwiftUI
 
 struct JarvisSettings: View {
     @Default(.jarvisAdresse) var jarvisAdresse
+    @Default(.jarvisAabnI) var jarvisAabnI
+    @Default(.jarvisAppNavn) var jarvisAppNavn
     @ObservedObject private var jarvis = JarvisState.shared
 
     @State private var proever: Bool = false
@@ -50,6 +53,32 @@ struct JarvisSettings: View {
                 }
             } footer: {
                 Text("The house's own bridge, read only: the notch never writes anything. The tab appears when the address is filled in.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Section {
+                Picker("Open in", selection: $jarvisAabnI) {
+                    ForEach(JarvisAabnI.allCases) { valg in
+                        Text(valg.rawValue).tag(valg)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+
+                if jarvisAabnI == .app {
+                    TextField(
+                        "App name",
+                        text: $jarvisAppNavn,
+                        prompt: Text(verbatim: "Jarvis")
+                    )
+                    Text("The name (or bundle id) of the Jarvis app on this Mac. If it is running it is simply brought to the front; if not, it is launched from your Applications folder. If it can be found neither way, the link opens in the web app instead.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            } header: {
+                Text("Links")
+            } footer: {
+                Text("A specific card can only be opened in the web app.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
