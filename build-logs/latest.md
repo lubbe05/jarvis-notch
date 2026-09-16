@@ -1,17 +1,17 @@
 # Seneste byg — GRØN — appen blev bygget
 
-- dato: 2026-09-16 21:29 UTC
+- dato: 2026-09-16 22:04 UTC
 - gren: jarvis
-- sha: 6d4fea886f4fd4df753e9d16fb707f40befb0150
-- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35152281697
-- artifact: boringNotch-jarvis-6d4fea8 (zip, og dmg hvis den lykkedes)
+- sha: 06bf4f1b6a6bffb838b8d77c237e85e7bbc217a9
+- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35155427375
+- artifact: boringNotch-jarvis-06bf4f1 (zip, og dmg hvis den lykkedes)
 - signering: OK — alt signeret med ad hoc, ingen indlejret del har et team-id
-- udgivelse: jarvis-v20260916-6d4fea8 — https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-6d4fea8
+- udgivelse: jarvis-v20260916-06bf4f1 — https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-06bf4f1
 
 ## Fejl og advarsler (de første 200 linjer)
 
 ```
-2026-09-16 21:27:15.213 appintentsmetadataprocessor[5985:21557] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2026-09-16 22:02:25.576 appintentsmetadataprocessor[20012:60244] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/components/Shelf/Services/ThumbnailService.swift:17:17: warning: conformance of 'NSImage' to 'Sendable' is unavailable; this is an error in the Swift 6 language mode
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/components/Shelf/Services/ThumbnailService.swift:30:34: warning: conformance of 'NSImage' to 'Sendable' is unavailable; this is an error in the Swift 6 language mode
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/components/Shelf/Services/ThumbnailService.swift:33:20: warning: conformance of 'NSImage' to 'Sendable' is unavailable; this is an error in the Swift 6 language mode
@@ -71,7 +71,7 @@
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/XPCHelperClient/XPCHelperClient.swift:232:43: warning: type 'RemoteXPCService<any BoringNotchXPCHelperProtocol>' does not conform to the 'Sendable' protocol; this is an error in the Swift 6 language mode
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/XPCHelperClient/XPCHelperClient.swift:233:17: warning: capture of 'self' with non-sendable type 'XPCHelperClient' in a '@Sendable' closure; this is an error in the Swift 6 language mode
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/extensions/NSItemProvider+LoadHelpers.swift:44:21: warning: capture of 'self' with non-sendable type 'NSItemProvider' in a '@Sendable' closure
-2026-09-16 21:28:35.825 appintentsmetadataprocessor[8585:28822] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2026-09-16 22:03:53.380 appintentsmetadataprocessor[23312:69112] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 ```
 
 ## Signeringen (ad hoc) og team-id-tjekket
@@ -131,8 +131,8 @@
 --prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Autoupdate
 --validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Autoupdate
 --prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Downloader.xpc
---prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Updater.app
 --prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Installer.xpc
+--prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Updater.app
 --validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Downloader.xpc
 --validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Installer.xpc
 --validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Updater.app
@@ -165,7 +165,7 @@
    OK   Contents/Resources/MediaRemoteAdapterTestClient  ->  TeamIdentifier=not set
         CodeDirectory v=20400 size=830 flags=0x2(adhoc) hashes=19+2 location=embedded
    OK   Contents/MacOS/boringNotch  ->  TeamIdentifier=not set
-        CodeDirectory v=20400 size=92466 flags=0x2(adhoc) hashes=2879+7 location=embedded
+        CodeDirectory v=20400 size=92658 flags=0x2(adhoc) hashes=2885+7 location=embedded
    OK   Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc  ->  TeamIdentifier=not set
         CodeDirectory v=20400 size=1054 flags=0x2(adhoc) hashes=22+7 location=embedded
    OK   Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc  ->  TeamIdentifier=not set
@@ -185,13 +185,13 @@
    OK   Contents/Resources/Defaults_Defaults.bundle  ->  TeamIdentifier=not set
         CodeDirectory v=20100 size=204 flags=0x2(adhoc) hashes=1+3 location=embedded
    OK   boringNotch.app  ->  TeamIdentifier=not set
-        CodeDirectory v=20400 size=92466 flags=0x2(adhoc) hashes=2879+7 location=embedded
+        CodeDirectory v=20400 size=92658 flags=0x2(adhoc) hashes=2885+7 location=embedded
 
 == 6. de tre, Lauritz' fejlbesked handlede om ==
 --- boringNotch.app
 Identifier=theboringteam.boringnotch
 Format=app bundle with Mach-O thin (arm64)
-CodeDirectory v=20400 size=92466 flags=0x2(adhoc) hashes=2879+7 location=embedded
+CodeDirectory v=20400 size=92658 flags=0x2(adhoc) hashes=2885+7 location=embedded
 Signature=adhoc
 TeamIdentifier=not set
     --- kravet appen skal opfylde for at TCC kender den igen ---
@@ -223,31 +223,31 @@ BEMÆRK: uden certifikat skifter appens mærke ved hvert byg, og macOS
 Executable=/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/MacOS/boringNotch
 Identifier=theboringteam.boringnotch
 Format=app bundle with Mach-O thin (arm64)
-CodeDirectory v=20400 size=92466 flags=0x2(adhoc) hashes=2879+7 location=embedded
+CodeDirectory v=20400 size=92658 flags=0x2(adhoc) hashes=2885+7 location=embedded
 Signature=adhoc
 Info.plist entries=35
 TeamIdentifier=not set
 Sealed Resources version=2 rules=13 files=55
 Internal requirements count=0 size=12
 Using badge icon for DMG volume.
-Creating DMG via dmgbuild: app=/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app output=/Users/runner/work/_temp/ud/boringNotch-jarvis-6d4fea8.dmg volume=boringNotch Jarvis
+Creating DMG via dmgbuild: app=/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app output=/Users/runner/work/_temp/ud/boringNotch-jarvis-06bf4f1.dmg volume=boringNotch Jarvis
 total 35328
-drwxr-xr-x   4 runner  staff      128 Sep 16 21:29 .
-drwxr-xr-x  20 runner  staff      640 Sep 16 21:28 ..
--rw-r--r--@  1 runner  staff  9933393 Sep 16 21:29 boringNotch-jarvis-6d4fea8.dmg
--rw-r--r--   1 runner  staff  8147066 Sep 16 21:28 boringNotch-jarvis-6d4fea8.zip
+drwxr-xr-x   4 runner  staff      128 Sep 16 22:04 .
+drwxr-xr-x  20 runner  staff      640 Sep 16 22:04 ..
+-rw-r--r--@  1 runner  staff  9925598 Sep 16 22:04 boringNotch-jarvis-06bf4f1.dmg
+-rw-r--r--   1 runner  staff  8157270 Sep 16 22:04 boringNotch-jarvis-06bf4f1.zip
 ```
 
 ## Udgivelsen (Release) og de vedhæftede filer
 
 ```
-https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-6d4fea8
+https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-06bf4f1
 
-== udgivelsen jarvis-v20260916-6d4fea8 ==
-https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-6d4fea8
+== udgivelsen jarvis-v20260916-06bf4f1 ==
+https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-06bf4f1
 == vedhæftede filer ==
-boringNotch-jarvis-6d4fea8.dmg  9933393 bytes
-boringNotch-jarvis-6d4fea8.zip  8147066 bytes
+boringNotch-jarvis-06bf4f1.dmg  9925598 bytes
+boringNotch-jarvis-06bf4f1.zip  8157270 bytes
 ```
 
 ## Slutningen af loggen (sidste 80 linjer)
@@ -279,8 +279,8 @@ ProcessInfoPlistFile /Users/runner/work/_temp/dd/Build/Products/Release/boringNo
 ExtractAppIntentsMetadata (in target 'boringNotch' from project 'boringNotch')
     cd /Users/runner/work/jarvis-notch/jarvis-notch
     /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name boringNotch --sdk-root /Applications/Xcode_16.4.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk --xcode-version 16F6 --platform-family macOS --deployment-target 14.0 --bundle-identifier theboringteam.boringnotch --output /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Resources --target-triple arm64-apple-macos14.0 --binary-file /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/MacOS/boringNotch --dependency-file /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/boringNotch_dependency_info.dat --stringsdata-file /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/boringNotch.SwiftFileList --metadata-file-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/boringNotch.DependencyMetadataFileList --static-metadata-file-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/boringNotch.DependencyStaticMetadataFileList --swift-const-vals-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/boringNotch.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
-2026-09-16 21:28:35.818 appintentsmetadataprocessor[8585:28822] Starting appintentsmetadataprocessor export
-2026-09-16 21:28:35.825 appintentsmetadataprocessor[8585:28822] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2026-09-16 22:03:53.377 appintentsmetadataprocessor[23312:69112] Starting appintentsmetadataprocessor export
+2026-09-16 22:03:53.380 appintentsmetadataprocessor[23312:69112] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 
 CopySwiftLibs /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app (in target 'boringNotch' from project 'boringNotch')
     cd /Users/runner/work/jarvis-notch/jarvis-notch
