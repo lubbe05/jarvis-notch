@@ -77,7 +77,7 @@ maskine — den står ikke i koden, og appen sender aldrig noget den anden vej.
 *Lauritz: din adresse står i kortet i Kommandocentret.*
 
 Så har du **to nye faner** i den udfoldede notch. Begge folder notchen lidt
-større ud end appens egne faner — Jarvis 780 × 320, Aktier 760 × 260, mod
+større ud end appens egne faner — Jarvis 780 × 340, Aktier 760 × 310, mod
 640 × 190 — så husets sætninger (tallene står i ord, ikke i cifre) kan bryde over
 flere linjer i stedet for at blive klippet med «…». Hjem og Hylde beholder deres
 størrelse.

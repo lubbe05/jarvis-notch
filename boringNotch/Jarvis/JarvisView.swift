@@ -50,6 +50,8 @@ struct JarvisView: View {
         }
         .padding(.horizontal, 6)
         .padding(.top, 2)
+        // Toppen står fast: vælter noget, vælter det nedad.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     // MARK: Øverst: hvor mange venter, og hvad huset laver
@@ -69,7 +71,8 @@ struct JarvisView: View {
                      ?? NSLocalizedString("Waiting for you", comment: "Jarvis: cards waiting"))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(jarvis.venterAntal > 0 ? .white : .gray)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 4)
@@ -84,6 +87,11 @@ struct JarvisView: View {
     private var husetBlok: some View {
         if let huset = jarvis.svar?.huset {
             VStack(alignment: .leading, spacing: 2) {
+                // ÉN LINJE PR. SÆTNING HER, og det er en højde-beslutning:
+                // blokken står ved siden af badgen, så alt den bruger, er højde
+                // kortlisten ikke får. Husets sætninger er korte («natten
+                // arbejder på opgaverne lige nu»), og hele leverancen kan læses
+                // i Kommandocentret. Kortene er det han skal svare på.
                 if let ord = jarvisOrd(huset.ord) {
                     JarvisRaekke(
                         ikon: "house.fill",
@@ -91,7 +99,7 @@ struct JarvisView: View {
                         farve: .white.opacity(0.9),
                         ikonfarve: jarvisTilstandsfarve(huset.tilstand),
                         stoerrelse: 12,
-                        linjer: 2
+                        linjer: 1
                     )
                 }
                 if let seneste = jarvisOrd(huset.seneste) {
@@ -99,9 +107,8 @@ struct JarvisView: View {
                     Text(linje)
                         .font(.system(size: 10))
                         .foregroundStyle(Color.gray)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                         .padding(.leading, 19)
                 }
                 if let ord = jarvisOrd(jarvis.svar?.breve?.ord), jarvis.breveAntal > 0 {
@@ -114,14 +121,26 @@ struct JarvisView: View {
 
     // MARK: Kortene han kan svare på
 
+    /// Listen — og den giver efter i ANTAL RÆKKER, ikke i toppen.
+    ///
+    /// Lauritz 16/9 23:5x om Aktier-fanen: «notchen går ligesom op af». Samme
+    /// fare her: bryder to af de fem titler over to linjer, bliver fladen
+    /// højere end notchen, og et barn der er højere end sin ramme, vælter ud
+    /// over toppen. Fanens højde er målt til fem ÉN-linjede rækker
+    /// (`jarvisOpenNotchSize`), og `ViewThatFits` tager fire eller tre hvis fem
+    /// ikke kan være der. De kort der ryger, er de ÆLDSTE — listen er sorteret
+    /// med de nyeste først — og de står stadig i Kommandocentret, som knappen
+    /// nedenunder åbner.
     @ViewBuilder
     private var venteListe: some View {
         let liste = jarvis.venterListe
         if !liste.isEmpty {
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(liste, id: \.raekkeId) { kort in
-                    kortRaekke(kort)
-                }
+            ViewThatFits(in: .vertical) {
+                raekker(liste)
+                raekker(Array(liste.prefix(4)))
+                raekker(Array(liste.prefix(3)))
+                raekker(Array(liste.prefix(2)))
+                raekker(Array(liste.prefix(1)))
             }
         } else if jarvis.venterAntal > 0,
                   let seneste = jarvis.svar?.venter?.seneste,
@@ -133,6 +152,14 @@ struct JarvisView: View {
         } else {
             // Intet venter. Så er agenterne det der er værd at se.
             agentRaekke
+        }
+    }
+
+    private func raekker(_ liste: [JarvisVenterKort]) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(liste, id: \.raekkeId) { kort in
+                kortRaekke(kort)
+            }
         }
     }
 
@@ -154,17 +181,23 @@ struct JarvisView: View {
             }
             JarvisLinkRaekke(url: kortLink(id)) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    // ÉN LINJE PR. KORT. Titlen er i forvejen klippet til 60
+                    // tegn af huset, og 60 tegn i 12 punkter er omkring 400 pt —
+                    // der er plads. Ét kort der bryder over to linjer, ville
+                    // skubbe et andet kort ud af listen, og fem kort man kan
+                    // svare på, er mere værd end én titel der står helt ud.
+                    // Hele titlen står i Kommandocentret, som et klik åbner.
                     Text(jarvisOrd(kort.titel) ?? "")
                         .font(.system(size: 12))
                         .foregroundStyle(.white)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                     if let fra = jarvisOrd(kort.fra) {
                         Text(fra)
                             .font(.system(size: 10))
                             .foregroundStyle(Color.gray)
                             .lineLimit(1)
+                            .layoutPriority(-1)
                     }
                 }
             }
@@ -492,7 +525,8 @@ struct JarvisLukketMaerke: View {
 #Preview {
     JarvisView()
         .environmentObject(BoringViewModel())
-        .frame(width: jarvisOpenNotchSize.width - 62, height: jarvisOpenNotchSize.height - 50)
+        .frame(width: jarvisOpenNotchSize.width - 62,
+               height: jarvisOpenNotchSize.height - 46)
         .background(.black)
         .preferredColorScheme(.dark)
 }

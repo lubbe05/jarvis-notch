@@ -20,6 +20,22 @@
 //  Dertil to linjer huset kan lægge ind ved siden af: markedsvejret og
 //  kontanterne. Er nøglen der, står linjen; er den ikke, findes linjen ikke.
 //
+//  HØJDEN ER EN REGEL HER (Lauritz 16/9 23:5x: «notchen inde på aktiesiden går
+//  ligesom op af, så jeg kan ikke se hele skærmen»). Da de tre nye linjer kom
+//  til, blev indholdet højere end den åbne notch, og en flade der er højere end
+//  sin ramme, vælter ud over TOPPEN — op bag hakket. Tre ting holder det nede:
+//
+//    1. **Bredden bruges.** Værdien og beløbet står på SAMME linje, og
+//       markedsvejret og kontanterne står SIDE OM SIDE. 698 pt er rigeligt til
+//       to spalter, og to spalter er to linjer sparet.
+//    2. **Laboratoriernes sætning er det der giver efter.** Den er den længste
+//       og den mindst tidskritiske (den flytter sig kun på en måling), så den
+//       falder fra tre linjer til to — og kan de ikke være der, til én.
+//       Toppen giver ALDRIG efter: værdien og dagens linje er hele pointen.
+//    3. **Fanen har sin egen højde** (`jarvisAktierNotchSize`), målt på
+//       indholdet ovenfor, og `ContentView` top-justerer fladen, så et uheld
+//       kun kan vælte nedad.
+//
 //  Fanen henter INTET selv. Den læser `depot`, `labs` og `links` af præcis
 //  det svar Jarvis-fanen allerede har hentet: samme poller, samme cache,
 //  ét kald hvert minut.
@@ -44,7 +60,7 @@ struct JarvisAktierView: View {
 
     @ViewBuilder
     private var indhold: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             if jarvis.harDepotNoget || jarvisOrd(jarvis.svar?.labs?.ord) != nil {
                 depotBlok
                 husetsLinjer
@@ -65,6 +81,9 @@ struct JarvisAktierView: View {
         }
         .padding(.horizontal, 6)
         .padding(.top, 2)
+        // Toppen står fast. Er der mod forventning mere indhold end plads,
+        // vælter det nedad — aldrig op bag hakket.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     // MARK: Værdien og dagens bevægelse — det vigtigste
@@ -90,32 +109,37 @@ struct JarvisAktierView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            if let vaerdi = jarvisOrd(depot?.vaerdiOrd) {
-                Text(vaerdi)
-                    .font(.system(size: 26, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if let aendring = jarvisOrd(depot?.dagsaendringOrd) {
-                // Beløbet og «siden seneste lukkekurs». Pilen står i linjen
-                // ovenfor — to pile om den samme bevægelse er én for meget.
-                Text(aendring)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(jarvisRetningsfarve(depot?.retning))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if (depot?.retning ?? "").lowercased() == "ukendt" {
-                // Huset kunne ikke måle bevægelsen. Så siger vi netop DET —
-                // aldrig et nul, som ville blive læst som en måling.
-                Text("the movement could not be measured")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.gray)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+            // VÆRDIEN OG BELØBET PÅ SAMME LINJE. Fanen er 698 pt bred, og
+            // «cirka 167 tusind kroner» fylder omkring 300 af dem i 24 punkter —
+            // der er rigelig plads til beløbet ved siden af, og det er én linje
+            // sparet på en flade hvor højden er det knappe.
+            HStack(alignment: .lastTextBaseline, spacing: 12) {
+                if let vaerdi = jarvisOrd(depot?.vaerdiOrd) {
+                    Text(vaerdi)
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+                if let aendring = jarvisOrd(depot?.dagsaendringOrd) {
+                    // Beløbet og «siden seneste lukkekurs». Pilen står i linjen
+                    // ovenfor — to pile om den samme bevægelse er én for meget.
+                    Text(aendring)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(jarvisRetningsfarve(depot?.retning))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if (depot?.retning ?? "").lowercased() == "ukendt" {
+                    // Huset kunne ikke måle bevægelsen. Så siger vi netop DET —
+                    // aldrig et nul, som ville blive læst som en måling.
+                    Text("the movement could not be measured")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.gray)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
             }
         }
     }
@@ -127,13 +151,24 @@ struct JarvisAktierView: View {
     /// står aldrig en tom plads hvor huset ikke havde noget at sige.
     @ViewBuilder
     private var husetsLinjer: some View {
-        if let ord = jarvisOrd(jarvis.svar?.depot?.markedsvejrOrd) {
-            JarvisRaekke(ikon: "cloud.sun.fill", tekst: ord,
-                         farve: .white.opacity(0.85), stoerrelse: 12, linjer: 2)
-        }
-        if let ord = jarvisOrd(jarvis.svar?.depot?.kontanterOrd) {
-            JarvisRaekke(ikon: "banknote", tekst: ord,
-                         farve: .white.opacity(0.85), stoerrelse: 12, linjer: 2)
+        let vejr = jarvisOrd(jarvis.svar?.depot?.markedsvejrOrd)
+        let kontanter = jarvisOrd(jarvis.svar?.depot?.kontanterOrd)
+        if vejr != nil || kontanter != nil {
+            // SIDE OM SIDE og ikke oven på hinanden: to spalter er én linje
+            // sparet, og der er plads til dem. Er der kun én af dem, fylder den
+            // hele bredden af sig selv.
+            HStack(alignment: .top, spacing: 14) {
+                if let ord = vejr {
+                    JarvisRaekke(ikon: "cloud.sun.fill", tekst: ord,
+                                 farve: .white.opacity(0.85), stoerrelse: 12,
+                                 linjer: 2)
+                }
+                if let ord = kontanter {
+                    JarvisRaekke(ikon: "banknote", tekst: ord,
+                                 farve: .white.opacity(0.85), stoerrelse: 12,
+                                 linjer: 2)
+                }
+            }
         }
     }
 
@@ -184,15 +219,20 @@ struct JarvisAktierView: View {
     @ViewBuilder
     private var labsRaekke: some View {
         if let ord = jarvisOrd(jarvis.svar?.labs?.ord) {
-            // Sætningen ER husets dom. Vi bygger ingen dom af den, og vi
-            // klipper den ikke: op til 200 tegn får tre linjer her.
-            JarvisRaekke(
-                ikon: "flask.fill",
-                tekst: ord,
-                farve: .gray,
-                stoerrelse: 12,
-                linjer: 3
-            )
+            // Sætningen ER husets dom; vi bygger ingen dom af den.
+            //
+            // DEN ER OGSÅ DEN DER GIVER EFTER, når højden bliver knap. Den er
+            // den længste (op til 200 tegn) og den mindst tidskritiske — den
+            // flytter sig kun på en måling, og hele stillingen står på
+            // Investor-skærmen, som knappen nedenunder åbner. `ViewThatFits`
+            // prøver to linjer først og tager én, hvis to ikke kan være der.
+            // Toppen — værdien og dagens linje — giver ALDRIG efter.
+            ViewThatFits(in: .vertical) {
+                JarvisRaekke(ikon: "flask.fill", tekst: ord, farve: .gray,
+                             stoerrelse: 12, linjer: 2)
+                JarvisRaekke(ikon: "flask.fill", tekst: ord, farve: .gray,
+                             stoerrelse: 11, linjer: 1)
+            }
         }
     }
 
@@ -226,7 +266,7 @@ struct JarvisAktierView: View {
     JarvisAktierView()
         .environmentObject(BoringViewModel())
         .frame(width: jarvisAktierNotchSize.width - 62,
-               height: jarvisAktierNotchSize.height - 50)
+               height: jarvisAktierNotchSize.height - 46)
         .background(.black)
         .preferredColorScheme(.dark)
 }

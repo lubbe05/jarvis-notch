@@ -20,12 +20,40 @@ let openNotchSize: CGSize = .init(width: 640, height: 190)
 // behøver ikke være samme størrelse som de andre sider». Tallene i ord (fx
 // «cirka 167 tusind kroner» og «to tusind kroner op siden seneste lukkekurs»)
 // er lange sætninger, ikke tal, og de må ikke klippes med «…».
-// Aktier-fanen: værdien stort, dagens linje, regnskabet, labbenes sætning.
-let jarvisAktierNotchSize: CGSize = .init(width: 760, height: 260)
-// Jarvis-fanen er HØJERE, fordi den fik mere at bære 16/9 aften: op til fem
-// kort med Godkend/Afvis, og tekstfeltet «Sig det til Jarvis…». De to faner
-// behøver netop ikke være lige store — det var Lauritz' egen sætning.
-let jarvisOpenNotchSize: CGSize = .init(width: 780, height: 320)
+// HØJDERNE ER REGNET EFTER INDHOLDET (Lauritz 16/9 23:5x: «notchen inde på
+// aktiesiden går ligesom op af, så jeg kan ikke se hele skærmen»). 260 pt var
+// for lidt til Aktier-fanen efter at dagens linje, markedsvejret og kontanterne
+// kom til — og en flade der er højere end sin ramme, vælter ud over TOPPEN,
+// altså op bag hakket hvor man ikke kan læse den.
+//
+// AF FANENS HØJDE GÅR DER TRE TING FRA, før indholdet får noget:
+// husets egen header (`max(24, effectiveClosedNotchHeight)`, op til 38 pt),
+// `NotchLayout`s eget mellemrum (8) og `mainLayout`s bundpolstring (12) — 58 pt.
+//
+//   Aktier (760 × 310 -> 252 pt til indhold):
+//     dagens linje 20 + værdi og beløb på SAMME linje 34
+//     + markedsvejr og kontanter SIDE OM SIDE 32 + regnskab 32
+//     + labbene (2 linjer) 32 + «Åbn Investor» 28
+//     + mellemrum 40 + 5 + top 2                                  = 225
+//     -> 27 pt luft, nok til at dagens linje bryder over to linjer.
+//
+//   Jarvis (780 × 340 -> 282 pt til indhold):
+//     toplinjen 47 + FEM kortrækker à 24 med mellemrum 128
+//     + tekstfeltet 26 + «Åbn Kommandocenter» 28
+//     + mellemrum 32 + top 2                                      = 263
+//     -> 19 pt luft. Rækkerne er ÉN linje hver, og det er derfor tallet
+//        holder; kan de fem alligevel ikke være der, viser fanen fire eller
+//        tre (`venteListe`), og de ældste står stadig i Kommandocentret.
+//
+// Regnestykket er aritmetik og ikke en måling på en skærm — der er ingen Mac i
+// huset. Derfor står der to VÆRN under det: `ContentView` top-justerer den åbne
+// flade, så et uheld kun kan vælte NEDAD, og hver af de to faner skruer selv ned
+// (labbenes sætning, antallet af rækker) før noget kan nå at vælte.
+//
+// De to faner behøver netop ikke være lige store — det var Lauritz' egen
+// sætning — og Aktier holdes en smule mindre end Jarvis, som han bad om.
+let jarvisAktierNotchSize: CGSize = .init(width: 760, height: 310)
+let jarvisOpenNotchSize: CGSize = .init(width: 780, height: 340)
 
 /// Vinduet har én fast størrelse hele appens levetid (det oprettes én gang i
 /// `createBoringNotchWindow` og flyttes kun), så det skal kunne rumme den

@@ -106,8 +106,34 @@ måles» — aldrig et nul, som ville blive læst som en måling.
 Når broen ikke svarer: én dæmpet linje, «Jarvis er ikke at nå». Ingen popups.
 
 **Størrelsen.** De to Jarvis-faner folder notchen større ud end appens egne, og
-de er ikke ens: **Jarvis 780 × 320** (den har fået kortlisten og tekstfeltet),
-**Aktier 760 × 260**, mod appens **640 × 190**. Grunden er at husets tal står i **ord**
+de er ikke ens: **Jarvis 780 × 340** (den har fået kortlisten og tekstfeltet),
+**Aktier 760 × 310**, mod appens **640 × 190**.
+
+> **Rettet 16/9 om aftenen** efter din besked: *«notchen inde på aktiesiden går
+> ligesom op af, så jeg kan ikke se hele skærmen»*. Aktier-fanen var 260 pt høj,
+> og da dagens linje, markedsvejret og kontanterne kom til, blev indholdet
+> højere end fladen. En flade der er højere end sin ramme, blev **centreret** —
+> altså væltede den lige meget ud over toppen og bunden, og toppen er skærmens
+> kant. Tre ting er ændret:
+>
+> 1. **Toppen står fast.** Den åbne notch er nu top-justeret, så en flade der
+>    er for høj, kun kan vælte **nedad**, ind i skyggens plads hvor man stadig
+>    kan læse den. Det gælder alle faner, også Hjem og Hylde.
+> 2. **Højderne er regnet efter indholdet.** Af fanens højde går der 58 pt fra
+>    til appens egen header og polstring; resten er regnet linje for linje
+>    (regnestykket står i `sizing/matters.swift`). Aktier har 27 pt luft, Jarvis
+>    19 pt. Aktier-fanen bruger nu **bredden**: værdien og beløbet står på
+>    samme linje, og markedsvejret og kontanterne står side om side.
+> 3. **Noget giver efter, og det er ikke toppen.** På Aktier-fanen er det
+>    **laboratoriernes sætning** der falder fra to linjer til én — den er den
+>    længste og den mindst tidskritiske, og hele stillingen står på
+>    Investor-skærmen. På Jarvis-fanen er det **antallet af kortrækker**: kan
+>    fem ikke være der, vises fire eller tre, og de ældste står stadig i
+>    Kommandocentret. Værdien, dagens linje og de nyeste kort giver aldrig efter.
+>
+> **Ærligt:** regnestykket er aritmetik og ikke en måling på en rigtig skærm —
+> der er ingen Mac i huset. Ser det stadig skævt ud, så sig hvor mange
+> millimeter, så flytter jeg tallet. Grunden er at husets tal står i **ord**
 («cirka 167 tusind kroner», «to tusind kroner op siden seneste lukkekurs»), og
 de sætninger blev klippet med «…» i den gamle bredde. Nu bryder de over 2-3
 linjer i stedet. Hjem og Hylde er uændrede. Styringen står ét sted:

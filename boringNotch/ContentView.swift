@@ -130,9 +130,25 @@ struct ContentView: View {
                     // retninger. Vinduet er nu så bredt som den bredeste fane kan
                     // blive (se sizing/matters.swift), og uden bredden her ville
                     // Hjem og Hylde flyde med ud. Lukket er den nil som før.
+                    //
+                    // «alignment: .top» ER RETTELSEN PÅ LAURITZ' FEJL 16/9 23:5x:
+                    // «notchen inde på aktiesiden går ligesom op af, så jeg kan
+                    // ikke se hele skærmen». En `.frame(height:)` uden alignment
+                    // centrerer sit barn — og et barn der er HØJERE end rammen,
+                    // vælter derfor lige meget ud over toppen og bunden. Toppen
+                    // er skærmens kant og notchens egen `clipShape`, så den
+                    // øverste linje forsvandt op bag hakket.
+                    //
+                    // Med `.top` kan en flade der er for høj, kun vælte NEDAD —
+                    // ind i skyggens plads, hvor man stadig kan læse den. Det er
+                    // et VÆRN og ikke kuren: hver fane er målt til at passe (se
+                    // `jarvisOpenNotchSize` / `jarvisAktierNotchSize`), og de to
+                    // Jarvis-faner skruer selv ned for laboratoriernes sætning og
+                    // for antallet af kortrækker, før noget kan nå at vælte.
                     .frame(
                         width: vm.notchState == .open ? vm.notchSize.width : nil,
-                        height: vm.notchState == .open ? vm.notchSize.height : nil
+                        height: vm.notchState == .open ? vm.notchSize.height : nil,
+                        alignment: .top
                     )
                     .conditionalModifier(true) { view in
                         let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
