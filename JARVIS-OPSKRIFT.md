@@ -113,6 +113,7 @@ opføre sig pænt når appen ligger i **/Programmer** og karantænen er væk
 
 **7. Jarvis-adressen.** Settings → **Jarvis** → skriv
 `http://<din-tailscale-adresse>:8000/notch` → **Test** skal svare «Jarvis svarede».
+*Lauritz: din adresse står i kortet i Kommandocentret.*
 
 **8. Lad automatiske opdateringer stå TIL.** Settings → **About** →
 «Automatically check for updates» **til**. Fra 16/9 spørger appen ikke længere
@@ -221,11 +222,11 @@ Hvad det koster af privatliv, ærligt:
 
 - Koden er alligevel boringNotch, som er frit tilgængelig i forvejen. Det nye,
   der bliver offentligt, er **Jarvis-fanen** og **denne opskrift**.
-- Opskriften nævner husets adresse, `http://<din-tailscale-adresse>:8000/notch`. Det er
-  en **Tailscale-adresse** (100.64–100.127-serien). Den kan kun nås indefra dit
-  eget Tailscale-net — en fremmed på det åbne internet kan ikke ringe på den,
-  uanset at han kender tallet. Adressen er altså ikke en dør, men den fortæller
-  at huset findes, og hvad det hedder indenfor.
+- Husets adresse står **ikke** i repoet. Overalt i opskriften og i appens tomme
+  felt står der `http://<din-tailscale-adresse>:8000/notch`; den rigtige adresse
+  skriver Lauritz selv ind, og den gemmes kun på hans egen Mac. Det er i øvrigt
+  en **Tailscale-adresse** (100.64–100.127-serien), som kun kan nås indefra hans
+  eget Tailscale-net — men nu hvor repoet er offentligt, står tallet ingen steder.
 - Vil du ikke engang det: erstat adressen med `http://DIN-JARVIS-ADRESSE:8000/notch`
   her i opskriften **før** du gør repoet offentligt, og skriv den rigtige
   adresse ind i appens Settings → Jarvis i hånden. Der er ingen nøgler,
@@ -423,7 +424,8 @@ listen til venstre. Skriv adressen i feltet:
 http://<din-tailscale-adresse>:8000/notch
 ```
 
-(Det er også teksten der står som blegt forslag i det tomme felt.) Tryk
+(Der står et blegt forslag i samme form i det tomme felt — erstat pladsholderen
+med din egen adresse.) Tryk
 **Test**: der kommer «Jarvis svarede» eller «Jarvis er ikke at nå». Så snart
 adressen står der, dukker fanen «Jarvis» op i den udfoldede notch (hjerne-
 ikonet). Tømmer du feltet, forsvinder både fanen, mærket og al hentning.

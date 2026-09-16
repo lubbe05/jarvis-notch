@@ -1,244 +1,159 @@
-> [!WARNING]
-> ## Privat fork — ikke det officielle projekt
->
-> Dette er en **privat fork** af [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch),
-> lavet til ét enkelt hjem («Jarvis»). Den er **ikke** et officielt projekt, og den er
-> ikke lavet, godkendt eller understøttet af The Boring Team.
->
-> - **Fejl i denne kopi hører til her** — åbn dem på
->   [lubbe05/jarvis-notch/issues](https://github.com/lubbe05/jarvis-notch/issues),
->   **aldrig** hos The Boring Team. De har intet med ændringerne her at gøre.
-> - **Al ære tilkommer dem.** Hele appen er deres arbejde; her er kun lagt én fane til.
-> - **Licensen er deres og uændret:** GPL-3.0, se [LICENSE](LICENSE). Ændringerne her
->   udgives under samme licens.
-> - **Vil du bare have appen?** Hent den officielle hos dem:
->   [theboring.name](https://theboring.name) ·
->   [boring.notch/releases](https://github.com/TheBoredTeam/boring.notch/releases).
->
-> *English: this is a private fork of [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch)
-> for one household — unofficial and unsupported; report issues here, not upstream; all credit and the
-> unchanged GPL-3.0 license belong to The Boring Team; get the official app from
-> [theboring.name](https://theboring.name).*
+*Private fork of [boring.notch](https://github.com/TheBoredTeam/boring.notch) with a Jarvis tab — not the official project; get the official app at [theboring.name](https://theboring.name).*
 
----
+# boringNotch med Jarvis-fanen
 
-## Denne kopi har Jarvis-fanen
+## 1. Hvad er det her?
 
-Det her er The Boring Teams `boring.notch` med én tilføjelse: en fane **«Jarvis»** i
-notchen, der viser hvad huset laver. Alt andet er som hos opstrøms.
+Det er en **privat fork** af [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch),
+lavet til ét hjem. Der er lagt **én fane** til — «Jarvis» — som viser, hvad husets
+system laver. Alt andet i appen er deres arbejde.
+
+- **Det er ikke et officielt projekt.** The Boring Team har ikke lavet eller
+  godkendt denne kopi og har intet med den at gøre.
+- **Fejl i denne kopi meldes HER:**
+  [lubbe05/jarvis-notch/issues](https://github.com/lubbe05/jarvis-notch/issues).
+  Aldrig hos dem — de kan ikke gøre noget ved ændringer, de ikke har lavet.
+- **Al ære tilkommer The Boring Team.** Hele appen er deres. Deres egen README
+  ligger uændret i [README.upstream.md](README.upstream.md).
+- **Licensen er deres og uændret:** GPL-3.0, se [LICENSE](LICENSE). Ændringerne
+  her udgives under samme licens.
+- **Vil du bare have appen?** Hent den officielle hos dem:
+  [theboring.name](https://theboring.name) ·
+  [boring.notch/releases](https://github.com/TheBoredTeam/boring.notch/releases).
+
+## 2. Hent
 
 ### ➜ [**Hent nyeste boringNotch med Jarvis**](https://github.com/lubbe05/jarvis-notch/releases/latest)
 
-Linket åbner den nyeste udgivelse. Hent `.dmg`-filen under **Assets** (eller `.zip`,
-hvis dmg'en mangler) og træk **boringNotch** over i **Programmer**. Der kommer en ny
-udgivelse af sig selv, hver gang huset har bygget noget nyt der virker.
+Under **Assets** ligger to filer:
 
-**Første gang advarer macOS**, fordi appen er signeret uden Apple-udviklerkonto:
-højreklik på appen → **Åbn** → **Åbn**, eller kør
-`xattr -dr com.apple.quarantine /Applications/boringNotch.app` — hele vejen igennem
-står i [JARVIS-OPSKRIFT.md](JARVIS-OPSKRIFT.md).
+| Fil | Sådan bruger du den |
+| --- | --- |
+| `boringNotch-jarvis-<sha7>.dmg` | Dobbeltklik, træk **boringNotch** over i **Programmer**. |
+| `boringNotch-jarvis-<sha7>.zip` | Pak ud, træk **boringNotch.app** til **/Programmer**. Virker altid. |
 
-> [!IMPORTANT]
-> Den store **«Download for macOS»**-knap længere nede på siden er The Boring Teams
-> egen, officielle app — **UDEN Jarvis-fanen**. Den lader vi stå, som den er.
-> Vil du have Jarvis med, er det linket herover du skal bruge.
+Der kommer en ny udgivelse af sig selv efter hvert grønt byg. Fejler bygget,
+kommer der ingen — så bliver den forrige stående, og den virker. dmg'en laves kun,
+hvis dmg-værktøjet kunne installeres på byggemaskinen; mangler den, siger
+udgivelsesteksten det, og så tager du zip'en.
 
----
+## 3. Første installation
 
-<h1 align="center">
-  <br>
-  <a href="http://theboring.name"><img src="https://framerusercontent.com/images/RFK4vs0kn8pRMuOO58JeyoemXA.png?scale-down-to=256" alt="Boring Notch" width="150"></a>
-  <br>
-  Boring Notch
-  <br>
-</h1>
+1. **Luk den gamle app først** — menulinjens ikon → **Quit**. Ellers vil macOS
+   ikke lade dig erstatte den. Sig **Erstat**, når Finder spørger.
+2. **macOS advarer første gang.** Appen er bygget uden Apple-udviklerkonto
+   («ad hoc-signeret»), så macOS siger, at den ikke kan søge efter skadelig
+   software. Tre veje — tag den første, der virker:
+   - Højreklik på appen → **Åbn** → **Åbn**.
+   - Systemindstillinger → **Anonymitet & sikkerhed** → rul ned → **«Åbn alligevel»**.
+   - Terminal:
+     ```bash
+     codesign --force --deep --sign - /Applications/boringNotch.app && xattr -dr com.apple.quarantine /Applications/boringNotch.app
+     ```
+     Den sidste er også kuren, hvis appen slet ikke starter — se
+     [JARVIS-OPSKRIFT.md](JARVIS-OPSKRIFT.md).
+3. **Tilladelserne skal gives igen.** macOS binder dem til appens signatur, og
+   vores er en anden end den officielle: kalender, påmindelser, tilgængelighed,
+   skærmoptagelse, Spotify/Musik. Sidder en fast, fjern **boringNotch** fra listen
+   i Systemindstillinger med **«−»** og start appen igen.
+4. **«Launch at login» fra og til.** Settings → **General** → slå den fra og til
+   igen, så macOS peger på den nye kopi. Den opfører sig kun pænt, når appen
+   ligger i **/Programmer** og karantænen er væk.
 
+Dine indstillinger følger med: appen har samme bundle-id som den officielle
+(`theboringteam.boringnotch`).
 
-<p align="center">
-  <a title="Crowdin" target="_blank" href="https://crowdin.com/project/boring-notch"><img src="https://badges.crowdin.net/boring-notch/localized.svg"></a>
-  <img src="https://github.com/TheBoredTeam/boring.notch/actions/workflows/cicd.yml/badge.svg" alt="TheBoringNotch Build & Test" style="margin-right: 10px;" />
-  <a href="https://discord.gg/c8JXA7qrPm">
-    <img src="https://dcbadge.limes.pink/api/server/https://discord.gg/c8JXA7qrPm?style=flat" alt="Discord Badge" />
-  </a>
-  <a href="https://www.ko-fi.com/alexander5015">
-    <img src="https://srv-cdn.himpfen.io/badges/kofi/kofi-flat.svg" alt="Ko-Fi" />
-  </a>
-</p>
+## 4. Slå Jarvis-fanen til
 
-<!--Welcome to **Boring.Notch**, the coolest way to make your MacBook's notch the star of the show! Forget about those boring status bars—our notch turns into a dynamic music control center, complete with a snazzy visualizer and all the music controls you need. It's like having a mini concert right at the top of your screen! -->
+Settings → **Jarvis** → skriv husets adresse i feltet:
 
-Say hello to **Boring Notch**, the coolest way to make your MacBook’s notch the star of the show! Say goodbye to boring status bars: with Boring Notch, your notch transforms into a dynamic music control center, complete with a vibrant visualizer and all the essential music controls you need. But that’s just the start! Boring Notch also offers calendar integration, a handy file shelf with AirDrop support, a complete MacOS HUD replacement and more!
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/2d5f69c1-6e7b-4bc2-a6f1-bb9e27cf88a8" alt="Demo GIF" />
-</p>
-
-<!--https://github.com/user-attachments/assets/19b87973-4b3a-4853-b532-7e82d1d6b040-->
----
-<!--## Table of Contents
-- [Installation](#installation)
-- [Usage](#usage)
-- [Roadmap](#-roadmap)
-- [Building from Source](#building-from-source)
-- [Contributing](#-contributing)
-- [Join our Discord Server](#join-our-discord-server)
-- [Star History](#star-history)
-- [Buy us a coffee!](#buy-us-a-coffee)
-- [Acknowledgments](#-acknowledgments)-->
-
-## Installation
-
-**System Requirements:**
-- macOS **14 Sonoma** or later
-- Apple Silicon or Intel Mac
-
----
-
-### Option 1: Download and Install Manually
-
-<a href="https://github.com/TheBoredTeam/boring.notch/releases/latest/download/boringNotch.dmg" target="_self"><img width="200" src="https://github.com/user-attachments/assets/e3179be1-8416-4b8a-b417-743e1ecc67d6" alt="Download for macOS" /></a>
-
-Once downloaded, open the `.dmg` and move **Boring Notch** to your `/Applications` folder.
-
-> [!IMPORTANT]
-> We don't have an Apple Developer account (yet 👀), so macOS will warn you that Boring Notch is from an unidentified developer on first launch. This is expected behavior.
->
-> You'll need to bypass this before the app will open. You only need to do this once. Use one of the methods below.
-
----
-
-#### Recommended: Terminal (Always Works)
-
-This is the quickest and easiest method. It only requires a single command and works consistently for all users. System Settings can sometimes fail and won't work for non-admin users.
-
-After moving Boring Notch to your Applications folder, run:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/boringNotch.app
+```
+http://<din-tailscale-adresse>:8000/notch
 ```
 
-Then open the app normally.
+Tryk **Test**. Der skal stå «Jarvis svarede». Adressen gemmes kun på din egen
+maskine — den står ikke i koden, og appen sender aldrig noget den anden vej.
 
----
+*Lauritz: din adresse står i kortet i Kommandocentret.*
 
-#### Alternative: System Settings
+Så har du:
 
-> [!NOTE]
-> This method doesn't work for all users. If this doesn't work, use the Terminal method above.
+- **En tredje fane «Jarvis»** i den udfoldede notch: hvor mange kort der venter,
+  det seneste kort (klik åbner web-appen), hvad huset sidst gjorde, depotets værdi
+  og dagens ændring, næste regnskab, laboratoriernes ene sætning, og en prik pr.
+  agent (grøn arbejder, grå hviler, rød fejl — hold musen over for navnet).
+- **Et lille mærke i den foldede notch** — et hjerne-ikon med antallet, men kun
+  når der faktisk venter kort, og kun når der ikke spiller musik.
 
-1. Try to open the app — you'll see a security warning.
-2. Click **OK** to dismiss it.
-3. Open **System Settings** > **Privacy & Security**.
-4. Scroll to the bottom and click **Open Anyway** next to the Boring Notch warning.
-5. Confirm if prompted.
+Svarer huset ikke, står der én dæmpet linje: «Jarvis er ikke at nå». Ingen popups.
 
----
+## 5. Opdateringer
 
-### Option 2: Install via Homebrew
+Appen henter selv ny kode. Settings → **About** → **«Check for updates»**, eller
+lad **«Automatically check for updates»** stå til.
 
-You can also install using [Homebrew](https://brew.sh). The Homebrew installation automatically bypasses the macOS security warning described above.
+Den spørger **ikke** The Boring Team — den spørger husets eget Sparkle-feed, så
+den kan ikke opdatere Jarvis-fanen væk. Efter hvert grønt byg skriver huset en ny,
+signeret `appcast.xml` til grenen [`appcast`](https://github.com/lubbe05/jarvis-notch/tree/appcast),
+og appen henter den derfra. Kun det, huset har signeret med sin private nøgle,
+bliver godtaget.
+
+**Én gang i hånden først:** den udgave, du har nu, peger stadig på The Boring
+Teams feed og bærer deres nøgle, så den kan ikke opdatere sig over til vores.
+Installér én gang som i afsnit 3 — derefter går alt gennem appen. Hele forklaringen,
+og det ærlige forbehold om ad hoc-signerede apps, står i
+[JARVIS-OPSKRIFT.md](JARVIS-OPSKRIFT.md) under «Opdateringer gennem appen».
+
+## 6. Hvad er ændret i forhold til upstream
+
+Alt nyt ligger i sin egen mappe, så opstrøms-opdateringer kan flettes ind:
+
+| Nyt | |
+| --- | --- |
+| `boringNotch/Jarvis/JarvisModel.swift` | svaret fra husets bro + tilstanden i appen |
+| `boringNotch/Jarvis/JarvisPoller.swift` | henter `GET /notch` hvert 60. sekund |
+| `boringNotch/Jarvis/JarvisView.swift` | fanen + mærket i den foldede notch |
+| `boringNotch/Jarvis/JarvisSettingsView.swift` | indstillingen «Jarvis» |
+
+Rørt ved i forvejen eksisterende filer — små tilføjelser, mærket `// JARVIS`:
+`ContentView.swift`, `boringNotchApp.swift`,
+`components/Notch/BoringHeader.swift`, `components/Tabs/TabSelectionView.swift`,
+`components/Settings/SettingsView.swift`, `enums/generic.swift`,
+`models/Constants.swift`, `Localizable.xcstrings` og `boringNotch.xcodeproj`.
+
+Derudover:
+
+- `boringNotch/Info.plist` — `SUFeedURL` og `SUPublicEDKey` peger på husets eget
+  Sparkle-feed i stedet for The Boring Teams (afsnit 5).
+- `.github/workflows/jarvis_build.yml` — vores eget byg: ad hoc-signering af hver
+  indlejret del, zip + dmg, og en udgivelse pr. grønt byg. Opstrøms' egne workflows
+  er fjernet i denne fork, så den aldrig kan skrive eller kommentere i deres projekt.
+- `JARVIS-OPSKRIFT.md`, `jarvis.patch` — opskriften til Mac'en, og ændringerne som
+  én patch mod opstrøms.
+
+Notchen **læser kun**. Der sendes aldrig noget til huset, og der er ingen nøgler i
+koden.
+
+## 7. Bygge selv
+
+Kræver Xcode 16.4 og en Mac:
 
 ```bash
-brew install --cask TheBoredTeam/boring-notch/boring-notch
+git clone -b jarvis git@github.com:lubbe05/jarvis-notch.git
+cd jarvis-notch
+open boringNotch.xcodeproj      # vælg skemaet boringNotch, tryk ▶
 ```
 
-## Usage
+Den lange udgave — Swift-pakker, signering, og hvad man gør når det ikke oversætter
+— står i [JARVIS-OPSKRIFT.md](JARVIS-OPSKRIFT.md) under «Byg selv i Xcode».
 
-- Launch the app, and voilà—your notch is now the coolest part of your screen.
-- Hover over the notch to see it expand and reveal all its secrets.
-- Use the controls to manage your music like a rockstar.
-- Click the star in your menu bar to customize your notch to your heart's content.
+## 8. Licens og ære
 
-## 📋 Roadmap
-- [x] Playback live activity 🎧
-- [x] Calendar integration 📆
-- [x] Reminders integration ☑️
-- [x] Mirror 📷
-- [x] Charging indicator and current percentage 🔋
-- [x] Customizable gesture control 👆🏻
-- [x] Shelf functionality with AirDrop 📚
-- [x] Notch sizing customization, finetuning on different display sizes 🖥️
-- [x] System HUD replacements (volume, brightness, backlight) 🎚️💡⌨️
-- [ ] Bluetooth Live Activity (connect/disconnect for bluetooth devices) 
-- [ ] Weather integration ⛅️
-- [ ] Customizable Layout options 🛠️
-- [ ] Lock Screen Widgets 🔒
-- [ ] Extension system 🧩
-- [ ] Notifications (under consideration) 🔔
-<!-- - [ ] Clipboard history manager 📌 `Extension` -->
-<!-- - [ ] Download indicator of different browsers (Safari, Chromium browsers, Firefox) 🌍 `Extension`-->
-<!-- - [ ] Customizable function buttons 🎛️ -->
-<!-- - [ ] App switcher 🪄 -->
+boringNotch er skabt af **[The Boring Team](https://github.com/TheBoredTeam)** og
+udgives under **GPL-3.0**. Licensen her er deres, uændret: [LICENSE](LICENSE).
+Tredjepartsbiblioteker og deres licenser står i
+[THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES). Deres egen README ligger uændret i
+[README.upstream.md](README.upstream.md).
 
-<!-- ## 🧩 Extensions
-> [!NOTE]
-> We’re hard at work on some awesome extensions! Stay tuned, and we’ll keep you updated as soon as they’re released. -->
-
-## Building from Source
-
-### Prerequisites
-
-- **macOS 15.6 or later**
-- **Xcode 26 or later**
-
-### Installation
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/TheBoredTeam/boring.notch.git
-   cd boring.notch
-   ```
-
-2. **Open the Project in Xcode**:
-   ```bash
-   open boringNotch.xcodeproj
-   ```
-
-3. **Build and Run**:
-    - Click the "Run" button or press `Cmd + R`. Watch the magic unfold!
-
-## 🤝 Contributing
-
-We’re all about good vibes and awesome contributions! Read [CONTRIBUTING.md](CONTRIBUTING.md) to learn how you can join the fun!
-
-## Join our Discord Server
-
-<a href="https://discord.gg/GvYcYpAKTu" target="_blank"><img src="https://iili.io/28m3GHv.png" alt="Join The Boring Server!" style="height: 60px !important;width: 217px !important;" ></a>
-
-## Star History
-<!-- BROKEN: GitHub now restricts the stargazer API for privacy reasons
-<a href="https://www.star-history.com/#TheBoredTeam/boring.notch&Timeline">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=TheBoredTeam/boring.notch&type=Timeline&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=TheBoredTeam/boring.notch&type=Timeline" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=TheBoredTeam/boring.notch&type=Timeline" />
- </picture>
-</a>
--->
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/TheBoredTeam/org-star-chart-updater/main/projects/boring.notch/chart-dark.svg">
-   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/TheBoredTeam/org-star-chart-updater/main/projects/boring.notch/chart-light.svg">
-   <img src="https://raw.githubusercontent.com/TheBoredTeam/org-star-chart-updater/main/projects/boring.notch/chart-light.svg" alt="TheBoredTeam/boring.notch GitHub star history">
- </picture>
-
-## Support us on Ko-fi!
-<!-- <a href="https://www.buymeacoffee.com/jfxh67wvfxq" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-red.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a> -->
-<a href="https://www.ko-fi.com/alexander5015" target="_blank"><img src="https://github.com/user-attachments/assets//a76175ef-7e93-475a-8b67-4922ba5964c2" alt="Support us on Ko-fi" style="height: 70px !important;width: 346px !important;" ></a>
-
-## 🎉 Acknowledgments
-
-We would like to express our gratitude to the authors and maintainers of the open-source projects that made this possible. 
-
-## Notable Projects
-- **[MediaRemoteAdapter](https://github.com/ungive/mediaremote-adapter)** –  An open-source project that allowed us to use the Now Playing source in macOS 15.4+
-- **[NotchDrop](https://github.com/Lakr233/NotchDrop)** – An open-source project that has been instrumental in developing the first version of the "Shelf" feature in Boring Notch.
-
-For a full list of licenses and attributions, please see the [Third-Party Licenses](./THIRD_PARTY_LICENSES.md) file.
-
-### Icon credits: [@maxtron95](https://github.com/maxtron95)
-### Website credits: [@himanshhhhuv](https://github.com/himanshhhhuv)
-
-- **SwiftUI**: For making us look like coding wizards.
-- **You**: For being awesome and checking out **boring.notch**!
-
-
+Ændringerne i denne fork udgives under samme licens. Støt dem gerne — men gør det
+hos dem, ikke her: [theboring.name](https://theboring.name).
