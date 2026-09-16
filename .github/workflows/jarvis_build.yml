@@ -154,12 +154,20 @@ jobs:
 
             # Signerer ét sted ad hoc og beholder de rettigheder, der allerede står i
             # signaturen (XPC-hjælperen skal fx blive ved med at stå uden for sandkassen).
+            # UDEN HARDENED RUNTIME (16/9 2026, målt på Lauritz' Mac): «--options runtime»
+            # tænder library validation, og den kræver at hver indlejret binær er
+            # signeret af SAMME team som appen. Ad hoc har intet team, så dyld
+            # nægter MediaRemoteAdapter med «different Team IDs», selv om begge
+            # signaturer er ad hoc og rene. Kuren i hånden var altid
+            # `codesign --force --deep --sign -` — dvs. uden runtime-flaget — og
+            # den virkede. Så bygget signerer præcis sådan. Sparkle er ligeglad:
+            # EdDSA-nøglen bærer opdateringen, ikke runtime-flaget.
             signer() {
               STI="$1"
               TAELLER=$((TAELLER + 1))
               ENT="$ENT_DIR/$TAELLER.plist"
               RET="ingen rettigheder"
-              set -- --force --sign - --timestamp=none --options runtime
+              set -- --force --sign - --timestamp=none
               if codesign -d --entitlements :- "$STI" > "$ENT" 2>/dev/null \
                  && [ -s "$ENT" ] && plutil -lint "$ENT" > /dev/null 2>&1; then
                 set -- "$@" --entitlements "$ENT"
@@ -220,10 +228,10 @@ jobs:
             if [ -f "$APP_ENT" ]; then
               echo "   --- appens rettigheder ---"
               sed 's/^/       /' "$APP_ENT"
-              codesign --force --sign - --timestamp=none --options runtime \
+              codesign --force --sign - --timestamp=none \
                        --entitlements "$APP_ENT" "$APP" 2>&1 || FEJL=$((FEJL + 1))
             else
-              codesign --force --sign - --timestamp=none --options runtime "$APP" 2>&1 || FEJL=$((FEJL + 1))
+              codesign --force --sign - --timestamp=none "$APP" 2>&1 || FEJL=$((FEJL + 1))
             fi
             echo "   appen er signeret ($FEJL signeringsfejl indtil nu)"
 
