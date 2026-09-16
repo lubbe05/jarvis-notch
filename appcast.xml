@@ -9,22 +9,22 @@
     <language>da</language>
     <item>
       <title>boringNotch med Jarvis — 16/9-2026</title>
-      <pubDate>Wed, 16 Sep 2026 14:36:54 +0000</pubDate>
-      <sparkle:version>1289</sparkle:version>
+      <pubDate>Wed, 16 Sep 2026 14:48:10 +0000</pubDate>
+      <sparkle:version>1290</sparkle:version>
       <sparkle:shortVersionString>2.7.3</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <link>https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-cc1e75b</link>
+      <link>https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-313c32f</link>
       <description>boringNotch med Jarvis-fanen, bygget hos GitHub på en Mac.
 
 - dato: 16/9-2026
-- commit: `cc1e75b014b4dac57b9a5b699c0ea19ccbcb2244`
+- commit: `313c32f7200caa98cf05339cb5b5af36501aae12`
 - gren: jarvis
-- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35109312966
+- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35110640959
 
 ## Hent
 
-- **boringNotch-jarvis-cc1e75b.dmg** — dobbeltklik og træk **boringNotch** over i **Programmer**.
-- **boringNotch-jarvis-cc1e75b.zip** — pak ud og træk **boringNotch.app** til **/Programmer**. Virker altid.
+- **boringNotch-jarvis-313c32f.dmg** — dobbeltklik og træk **boringNotch** over i **Programmer**.
+- **boringNotch-jarvis-313c32f.zip** — pak ud og træk **boringNotch.app** til **/Programmer**. Virker altid.
 
 **Første gang advarer macOS**, fordi appen er ad hoc-signeret (ingen Apple-udviklerkonto).
 Højreklik på appen → **Åbn** → **Åbn**, eller i Terminal:
@@ -37,13 +37,12 @@ Resten af trinnene (tilladelser, login, Jarvis-adressen) står i `JARVIS-OPSKRIF
 
 ## Hvad er nyt
 
-- Byg: signér uden hardened runtime — library validation afviste ad hoc-frameworks («different Team IDs») efter Sparkle-opdatering på Lauritz' Mac 16/9; kuren i hånden var uden runtime-flaget, nu bygger vi sådan
-- Opskriften: bygget af de to faner er grønt, og udgivelsen findes</description>
+- Vælg Jarvis-appen i listen over kørende apps — dobbeltgængeren er lukket</description>
       <enclosure
-        url="https://github.com/lubbe05/jarvis-notch/releases/download/jarvis-v20260916-cc1e75b/boringNotch-jarvis-cc1e75b.zip"
-        length="8067432"
+        url="https://github.com/lubbe05/jarvis-notch/releases/download/jarvis-v20260916-313c32f/boringNotch-jarvis-313c32f.zip"
+        length="8088277"
         type="application/octet-stream"
-        sparkle:edSignature="lNIbYGYh3eJ7mEnVnXudMlwuolUmUmhznoKLCWZGyOF+/TMJ/mwjksYgTjpY1tWRIhelcYyETCLAis1S4ypWBA==" />
+        sparkle:edSignature="2CH03JiN+ZysTrmexkbFQGYEyWzsLd8liZYEXGtjkbRiXTwRgw3ZBQRrL3EHrNZBGbu6T3RPh/DdQLXo7Ya5Dg==" />
     </item>
   </channel>
 </rss>
