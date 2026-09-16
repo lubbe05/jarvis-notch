@@ -215,6 +215,15 @@ extension Defaults.Keys {
     // Hvor notchens links åbnes. Standard: Jarvis-appen på denne Mac, med
     // web-appen som automatisk redning hvis appen hverken kører eller findes.
     static let jarvisAabnI = Key<JarvisAabnI>("jarvisAabnI", default: .app)
-    // Navnet på Jarvis-appen på Mac'en (eller dens bundle-id).
+    // Navnet på Jarvis-appen på Mac'en (eller dens bundle-id). MANUEL RESERVE:
+    // navnet er usikkert. Lauritz' Jarvis-app er en Flet-klient, og dens
+    // localizedName er «Flet» — vinduet hedder «Jarvis», men det ser systemet
+    // ikke. Derfor er vælgeren nedenfor den rigtige vej.
     static let jarvisAppNavn = Key<String>("jarvisAppNavn", default: "Jarvis")
+    // Bundle-id'et på den app han har VALGT i listen over kørende apps.
+    // Det er det eneste sikre match: det følger processen, ikke navnet.
+    static let jarvisAppBundleId = Key<String>("jarvisAppBundleId", default: "")
+    // Stien til samme app (bundleURL), som reserve hvis bundle-id'et skifter
+    // eller mangler — og som det sted vi starter appen fra, hvis den ikke kører.
+    static let jarvisAppSti = Key<String>("jarvisAppSti", default: "")
 }

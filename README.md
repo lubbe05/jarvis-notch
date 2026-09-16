@@ -95,9 +95,12 @@ blive klippet med «…». Hjem og Hylde beholder deres størrelse.
 
 Begge knapper følger valget **Settings → Jarvis → «Open in»**: kører
 Jarvis-appen på Mac'en allerede, bliver den løftet frem (også hvis den er skjult
-eller har fået sit vindue lukket); ellers startes den, og som sidste redning
-åbnes web-appen. Feltet **«App name»** skal være udfyldt med det navn appen har i
-**Programmer** (fx `Jarvis`) — ellers går klikket direkte i browseren.
+eller har fået sit vindue lukket), og der startes **aldrig** en kopi nummer to;
+ellers startes den, og som sidste redning åbnes web-appen. **Vælg appen i listen
+«Jarvis app»** over det der kører lige nu — valget huskes på appens identitet,
+ikke på dens navn, og linjen «Kører lige nu: ja/nej» viser med det samme at
+matchet rammer. Det er nødvendigt, fordi en Flet- eller web-klient hedder noget
+andet i systemet («Flet») end i sit vinduestitel («Jarvis»).
 
 Svarer huset ikke, står der én dæmpet linje: «Jarvis er ikke at nå». Ingen popups.
 Der hentes stadig kun **ét** kald i minuttet: begge faner læser samme svar.

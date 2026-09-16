@@ -106,6 +106,83 @@ struct JarvisSvar: Codable {
     }
 }
 
+// MARK: - Hvilken app på Mac'en er «Jarvis»?
+//
+// Det står UDEN FOR JarvisState med vilje: indstillingernes vælger skal kunne
+// spørge uden at gå gennem hovedtråd-isolationen, og der er ingen tilstand at
+// beskytte — vi læser kun NSWorkspace og Defaults.
+
+/// En app der kører lige nu, som han kan vælge i indstillingerne.
+struct JarvisKoerendeApp: Identifiable, Hashable {
+    /// Bundle-id'et — og listens id, så to vinduer af samme app kun fylder én linje.
+    let id: String
+    let navn: String
+    let sti: String
+
+    var etiket: String { id.isEmpty ? navn : "\(navn) — \(id)" }
+}
+
+/// Alle almindelige apps der kører lige nu, sorteret efter navn.
+/// `.regular` sorterer baggrundsagenter og hjælpeprocesser fra — kun
+/// programmer med et ikon i Docken bliver tilbage.
+func jarvisKoerendeApps() -> [JarvisKoerendeApp] {
+    var fundet: [String: JarvisKoerendeApp] = [:]
+    for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
+        guard let id = app.bundleIdentifier, !id.isEmpty, fundet[id] == nil else { continue }
+        fundet[id] = JarvisKoerendeApp(
+            id: id,
+            navn: app.localizedName ?? id,
+            sti: app.bundleURL?.path ?? ""
+        )
+    }
+    return fundet.values.sorted {
+        $0.navn.localizedStandardCompare($1.navn) == .orderedAscending
+    }
+}
+
+/// Sandt hvis den valgte app kører lige nu. Linjen «Kører lige nu: ja/nej»
+/// i indstillingerne står på denne, så han kan SE at matchet virker,
+/// i stedet for at gætte efter et klik.
+var jarvisValgtAppKoerer: Bool { jarvisValgtKoerendeApp() != nil }
+
+/// Den kørende proces han mener. Rækkefølgen er med vilje:
+///
+///   1. **bundle-id** fra vælgeren — det eneste sikre match. Det følger
+///      processen og er uafhængigt af hvad appen kalder sig på skærmen.
+///   2. **stien** (bundleURL) fra vælgeren, hvis id'et skulle være skiftet.
+///   3. **navnet** fra tekstfeltet — manuel reserve, og kun det.
+///
+/// Lauritz 16/9 (skærmoptagelse): hans Jarvis-app er en Flet-desktop-klient.
+/// Processens `localizedName` er «Flet»; kun VINDUET hedder «Jarvis», og det
+/// kan systemet ikke se. Navnematchet ramte derfor aldrig den kørende app, og
+/// notchen startede en ny kopi fra `/Applications`. Bundle-id'et er kuren.
+func jarvisValgtKoerendeApp() -> NSRunningApplication? {
+    let koerende = NSWorkspace.shared.runningApplications
+
+    let valgtId = Defaults[.jarvisAppBundleId].trimmingCharacters(in: .whitespacesAndNewlines)
+    if !valgtId.isEmpty, let app = koerende.first(where: { $0.bundleIdentifier == valgtId }) {
+        return app
+    }
+
+    let valgtSti = Defaults[.jarvisAppSti].trimmingCharacters(in: .whitespacesAndNewlines)
+    if !valgtSti.isEmpty {
+        let sti = URL(fileURLWithPath: valgtSti).standardizedFileURL.path
+        if let app = koerende.first(where: { $0.bundleURL?.standardizedFileURL.path == sti }) {
+            return app
+        }
+    }
+
+    let navn = Defaults[.jarvisAppNavn].trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    guard !navn.isEmpty else { return nil }
+    return koerende.first { ($0.localizedName ?? "").lowercased() == navn }
+        ?? koerende.first { ($0.bundleIdentifier ?? "").lowercased() == navn }
+        ?? koerende.first { app in
+            guard app.activationPolicy == .regular else { return false }
+            return (app.localizedName ?? "").lowercased().contains(navn)
+                || (app.bundleIdentifier ?? "").lowercased().contains(navn)
+        }
+}
+
 // MARK: - Tilstanden i appen
 
 @MainActor
@@ -184,32 +261,42 @@ final class JarvisState: ObservableObject {
 
     // MARK: - Åbning: appen på Mac'en eller web-appen
 
-    /// Den ene dør ud af notchen. Alle klikbare rækker i Jarvis-fanen går
-    /// herigennem, så valget i indstillingerne gælder overalt.
+    /// Den ene dør ud af notchen. Alle klikbare rækker og begge fanes knapper
+    /// går herigennem, så «Åbn i»-valget i indstillingerne gælder overalt.
     ///
     /// Ved valget «Jarvis-appen på denne Mac»:
-    ///   1. kører den allerede → løft den frem (ingen browser overhovedet)
-    ///   2. ellers: find den på disken og start den
+    ///   1. kører den allerede → løft den frem. **Der startes aldrig en ny kopi,
+    ///      når en proces med samme bundle-id kører.**
+    ///   2. kører den ikke → start den fra den sti/det id vælgeren gemte
+    ///      (ellers fra navnet).
     ///   3. lykkes intet → fald tilbage til web-linket, så klikket aldrig dør i stilhed.
     ///
     /// Et bestemt kort kan kun åbnes i web-appen; appen har intet URL-skema,
     /// så vi løfter den blot frem.
-    ///
-    /// Er feltet «app-navn» i Indstillinger → Jarvis tomt, springer vi trin 1-2
-    /// over og åbner web-appen. Uden navnet ved vi ikke hvilken app der menes.
     func aabn(_ link: URL?) {
         guard Defaults[.jarvisAabnI] == .app else {
             aabnWeb(link)
             return
         }
-        let navn = Defaults[.jarvisAppNavn].trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !navn.isEmpty else {
+
+        // 1.
+        if let app = jarvisValgtKoerendeApp() {
+            loeftFrem(app, redning: link)
+            return
+        }
+
+        // 2.
+        guard let appURL = jarvisAppPaaDisken() else {
             aabnWeb(link)
             return
         }
-        if loeftFremHvisKoerende(navn, redning: link) { return }
-        guard let appURL = findAppPaaDisken(navn) else {
-            aabnWeb(link)
+        // Sidste værn mod dobbeltgængeren: kører der allerede en proces fra
+        // præcis den bundle, løfter vi DEN frem i stedet for at starte en ny.
+        let sti = appURL.standardizedFileURL.path
+        if let koerer = NSWorkspace.shared.runningApplications.first(where: {
+            $0.bundleURL?.standardizedFileURL.path == sti
+        }) {
+            loeftFrem(koerer, redning: link)
             return
         }
         let opsaetning = NSWorkspace.OpenConfiguration()
@@ -225,14 +312,13 @@ final class JarvisState: ObservableObject {
         NSWorkspace.shared.open(link)
     }
 
-    /// Sandt hvis en kørende app matcher navnet (eller bundle-id'et) og blev løftet frem.
+    /// Løfter en app der ALLEREDE kører frem.
     ///
     /// Lauritz 16/9: «hvis Jarvis-appen allerede kører, skal den smides foran
-    /// når jeg klikker på Kommandocenter-tingen i notchen». Det gjorde den ofte
-    /// ikke — og det er ikke opslaget der fejler. `activate(options:)` alene
-    /// bliver afvist af macOS 14+, når den app der beder om løftet (boringNotch)
-    /// ikke selv står forrest, og notchen står aldrig forrest: den er en
-    /// baggrundsagent uden fokus. Derfor tre trin:
+    /// når jeg klikker på Kommandocenter-tingen i notchen». `activate(options:)`
+    /// alene bliver afvist af macOS 14+, når den app der beder om løftet
+    /// (boringNotch) ikke selv står forrest — og notchen står aldrig forrest:
+    /// den er en baggrundsagent uden fokus. Derfor tre trin:
     ///
     ///   1. `unhide()` — appen kan være skjult (⌘H) eller minimeret, og så er
     ///      der ikke noget at aktivere.
@@ -240,26 +326,14 @@ final class JarvisState: ObservableObject {
     ///      vores EGEN aktivering væk først, og så accepterer systemet løftet.
     ///      (Begge dele findes fra macOS 14, og projektets mindste system er
     ///      netop macOS 14.0, så der er intet at falde tilbage på.)
-    ///   3. `NSWorkspace.openApplication` på appens egen bundle — en proces kan
-    ///      leve videre uden ét eneste vindue (det gør web-apps/PWA'er tit, når
-    ///      man har lukket vinduet med ⌘W), og så hjælper aktivering ikke. Et
-    ///      rigtigt «åbn» på SAMME bundle giver vinduet tilbage og starter ingen
-    ///      ny kopi.
+    ///   3. `NSWorkspace.openApplication` på **processens egen** `bundleURL` —
+    ///      en app kan køre videre uden ét eneste vindue (det gør Flet- og
+    ///      web-klienter tit, når man har lukket vinduet med ⌘W), og så hjælper
+    ///      aktivering ikke. Et «åbn» på den bundle processen allerede kører fra
+    ///      giver vinduet tilbage og starter ingen ny kopi.
     ///
-    /// Lykkes hverken 2 eller 3, åbnes web-linket, så klikket aldrig dør i stilhed.
-    private func loeftFremHvisKoerende(_ navn: String, redning link: URL?) -> Bool {
-        let soegt = navn.lowercased()
-        let koerende = NSWorkspace.shared.runningApplications
-        let fundet =
-            koerende.first { ($0.localizedName ?? "").lowercased() == soegt }
-            ?? koerende.first { ($0.bundleIdentifier ?? "").lowercased() == soegt }
-            ?? koerende.first { app in
-                guard app.activationPolicy == .regular else { return false }
-                return (app.localizedName ?? "").lowercased().contains(soegt)
-                    || (app.bundleIdentifier ?? "").lowercased().contains(soegt)
-            }
-        guard let app = fundet else { return false }
-
+    /// Lykkes hverken 2 eller 3, åbnes web-linket.
+    private func loeftFrem(_ app: NSRunningApplication, redning link: URL?) {
         // 1.
         _ = app.unhide()
 
@@ -268,7 +342,10 @@ final class JarvisState: ObservableObject {
         let loeftet = app.activate(from: NSRunningApplication.current, options: [.activateAllWindows])
 
         // 3.
-        guard let bundle = app.bundleURL else { return loeftet }
+        guard let bundle = app.bundleURL else {
+            if !loeftet { aabnWeb(link) }
+            return
+        }
         let opsaetning = NSWorkspace.OpenConfiguration()
         opsaetning.activates = true
         NSWorkspace.shared.openApplication(at: bundle, configuration: opsaetning) { [weak self] koerer, fejl in
@@ -276,14 +353,22 @@ final class JarvisState: ObservableObject {
             guard !loeftet else { return }
             Task { @MainActor in self?.aabnWeb(link) }
         }
-        return true
     }
 
-    /// Leder efter appen på disken: først som bundle-id, så som navn i de to Programmer-mapper.
-    private func findAppPaaDisken(_ navn: String) -> URL? {
-        if navn.contains("."),
-           let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: navn)
-        {
+    /// Hvor appen ligger, når den IKKE kører. Samme rækkefølge som matchet:
+    /// vælgerens sti, vælgerens bundle-id, og til sidst navnet i tekstfeltet.
+    private func jarvisAppPaaDisken() -> URL? {
+        let sti = Defaults[.jarvisAppSti].trimmingCharacters(in: .whitespacesAndNewlines)
+        if !sti.isEmpty, FileManager.default.fileExists(atPath: sti) {
+            return URL(fileURLWithPath: sti)
+        }
+        let id = Defaults[.jarvisAppBundleId].trimmingCharacters(in: .whitespacesAndNewlines)
+        if !id.isEmpty, let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
+            return url
+        }
+        let navn = Defaults[.jarvisAppNavn].trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !navn.isEmpty else { return nil }
+        if navn.contains("."), let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: navn) {
             return url
         }
         let filnavn = navn.hasSuffix(".app") ? navn : navn + ".app"

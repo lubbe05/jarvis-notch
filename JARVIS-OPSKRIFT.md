@@ -466,21 +466,44 @@ faner, mærket og al hentning.
 Vil du have en Jarvis-fane til at blive stående i stedet for at falde tilbage til
 Home hver gang notchen lukker: **Settings → General** → «Remember last tab».
 
-**«Open in» og feltet «App name».** Under **Settings → Jarvis** står valget
-«Open in»: *Jarvis-appen på denne Mac* eller *web-appen*. Det gælder **begge**
-fanes knapper — «Åbn Kommandocenter» og «Åbn Investor» — og alle klikbare
-rækker. Vælger du appen, **skal feltet «App name» være udfyldt** med det navn
-appen har i **Programmer** (fx `Jarvis`), eller med dens bundle-id. Er feltet
-tomt, ved notchen ikke hvilken app der menes, og klikket går direkte i browseren.
+### «Open in» — og VÆLG appen i listen
 
-Kører appen allerede, bliver den løftet frem i stedet for at åbne en browserfane.
-Det sker i tre trin, fordi macOS 14 og nyere afviser et simpelt «aktivér» fra en
-app der ikke selv står forrest — og notchen står aldrig forrest: først `unhide()`
-(appen kan være skjult med ⌘H), så `yieldActivation` + `activate(from:)` (vi
-giver vores egen aktivering væk, og så accepterer systemet løftet), og til sidst
-et rigtigt «åbn» på samme bundle, fordi en app kan køre videre uden ét eneste
-vindue — det gør web-apps tit, når man har lukket vinduet med ⌘W. Virker intet af
-det, åbnes web-linket, så klikket aldrig dør i stilhed.
+Under **Settings → Jarvis** står valget «Open in»: *Jarvis-appen på denne Mac*
+eller *web-appen*. Det gælder **begge** fanes knapper — «Åbn Kommandocenter» og
+«Åbn Investor» — og alle klikbare rækker.
+
+Vælger du appen, står der nu en **liste over de apps der kører lige nu**
+(«Jarvis app»), med både navn og identitet: `Flet — com.flet.jarvis`. **Vælg din
+Jarvis-app der.** Under listen står **«Kører lige nu: ja/nej»**, så du kan se med
+det samme at valget rammer den rigtige proces — i stedet for at gætte efter et
+klik. Er appen ikke på listen, så start den og tryk **«Opdatér listen»**.
+
+**Hvorfor en liste og ikke bare et navn?** 16/9 startede notchen en **ny kopi**
+af Jarvis-appen hver gang du trykkede «Åbn Kommandocenter». Grunden stod i din
+egen skærmoptagelse: din Jarvis-app er en **Flet-desktop-klient**. Det navn
+systemet kender den under, er **«Flet»** — det er kun *vinduet* der hedder
+«Jarvis», og vinduestitler kan en app ikke se uden tilgængelighedsadgang. Feltet
+«App name» kunne derfor aldrig ramme den kørende proces, og så faldt notchen
+tilbage til «start `/Applications/Jarvis.app`» — en kopi nummer to, med sit eget
+ikon i Docken. Vælgeren gemmer i stedet appens **bundle-id**, som følger
+processen og er ligeglad med hvad den kalder sig på skærmen.
+
+Feltet **«App name (manuel reserve)»** er der stadig, men det bruges **kun** når
+der ikke er valgt noget i listen.
+
+Rækkefølgen når du klikker: kører der en proces med det valgte **bundle-id**
+(ellers den gemte **sti**, ellers navnet) → **løft den frem**. Der startes
+**aldrig** en ny kopi, når en proces fra samme bundle allerede kører. Kører der
+ingenting, startes appen fra den sti vælgeren gemte. Kan den heller ikke findes,
+åbnes web-linket, så klikket aldrig dør i stilhed.
+
+Selve løftet sker i tre trin, fordi macOS 14 og nyere afviser et simpelt
+«aktivér» fra en app der ikke selv står forrest — og notchen står aldrig forrest:
+først `unhide()` (appen kan være skjult med ⌘H), så `yieldActivation` +
+`activate(from:)` (vi giver vores egen aktivering væk, og så accepterer systemet
+løftet), og til sidst et rigtigt «åbn» på **den bundle processen allerede kører
+fra**, fordi en app kan leve videre uden ét eneste vindue — det gør Flet- og
+web-klienter tit, når man har lukket vinduet med ⌘W.
 
 Teksterne er danske. Appen har ikke dansk i forvejen, så de danske sætninger
 står i `Localizable.xcstrings` som både `da` og `en` — så ser du dansk uanset

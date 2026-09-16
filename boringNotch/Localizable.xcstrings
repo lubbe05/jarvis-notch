@@ -1,6 +1,182 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "App name (manual fallback)" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-navn (manuel reserve)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-navn (manuel reserve)"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-navn (manuel reserve)"
+          }
+        }
+      }
+    },
+    "Jarvis app" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jarvis-appen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jarvis-appen"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jarvis-appen"
+          }
+        }
+      }
+    },
+    "Not chosen" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke valgt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke valgt"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke valgt"
+          }
+        }
+      }
+    },
+    "Only used when nothing is chosen above: the name (or bundle id) of the app in your Applications folder. If the app is running it is brought to the front — also when it is hidden or its window has been closed — and a second copy is never started. If it can be found neither way, the link opens in the web app instead." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bruges kun når intet er valgt ovenfor: navnet (eller bundle-id'et) på appen i din Programmer-mappe. Kører appen, bliver den løftet frem — også når den er skjult, eller vinduet er lukket — og der startes aldrig en kopi nummer to. Kan den hverken findes på den ene eller den anden måde, åbnes linket i web-appen i stedet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bruges kun når intet er valgt ovenfor: navnet (eller bundle-id'et) på appen i din Programmer-mappe. Kører appen, bliver den løftet frem — også når den er skjult, eller vinduet er lukket — og der startes aldrig en kopi nummer to. Kan den hverken findes på den ene eller den anden måde, åbnes linket i web-appen i stedet."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bruges kun når intet er valgt ovenfor: navnet (eller bundle-id'et) på appen i din Programmer-mappe. Kører appen, bliver den løftet frem — også når den er skjult, eller vinduet er lukket — og der startes aldrig en kopi nummer to. Kan den hverken findes på den ene eller den anden måde, åbnes linket i web-appen i stedet."
+          }
+        }
+      }
+    },
+    "Pick the Jarvis app in the list of apps that are running right now. The choice is remembered by the app's identity, not by its name — a Flet or web client is often called something else in the system than in its window title. Is it not in the list, start it and press «Refresh list»." : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg Jarvis-appen i listen over apps der kører lige nu. Valget huskes på appens identitet, ikke på dens navn — en Flet- eller web-klient hedder ofte noget andet i systemet end i sin vinduestitel. Står den ikke på listen, så start den og tryk «Opdatér listen»."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg Jarvis-appen i listen over apps der kører lige nu. Valget huskes på appens identitet, ikke på dens navn — en Flet- eller web-klient hedder ofte noget andet i systemet end i sin vinduestitel. Står den ikke på listen, så start den og tryk «Opdatér listen»."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg Jarvis-appen i listen over apps der kører lige nu. Valget huskes på appens identitet, ikke på dens navn — en Flet- eller web-klient hedder ofte noget andet i systemet end i sin vinduestitel. Står den ikke på listen, så start den og tryk «Opdatér listen»."
+          }
+        }
+      }
+    },
+    "Refresh list" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opdatér listen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opdatér listen"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opdatér listen"
+          }
+        }
+      }
+    },
+    "Running right now: no" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kører lige nu: nej"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kører lige nu: nej"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kører lige nu: nej"
+          }
+        }
+      }
+    },
+    "Running right now: yes" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kører lige nu: ja"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kører lige nu: ja"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kører lige nu: ja"
+          }
+        }
+      }
+    },
     "Open Investor" : {
       "localizations" : {
         "da" : {
