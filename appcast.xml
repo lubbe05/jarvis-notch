@@ -9,24 +9,26 @@
     <language>da</language>
     <item>
       <title>boringNotch med Jarvis — 16/9-2026</title>
-      <pubDate>Wed, 16 Sep 2026 14:48:10 +0000</pubDate>
-      <sparkle:version>1290</sparkle:version>
+      <pubDate>Wed, 16 Sep 2026 21:29:12 +0000</pubDate>
+      <sparkle:version>1291</sparkle:version>
       <sparkle:shortVersionString>2.7.3</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <link>https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-313c32f</link>
+      <link>https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-6d4fea8</link>
       <description>boringNotch med Jarvis-fanen, bygget hos GitHub på en Mac.
 
 - dato: 16/9-2026
-- commit: `313c32f7200caa98cf05339cb5b5af36501aae12`
+- commit: `6d4fea886f4fd4df753e9d16fb707f40befb0150`
 - gren: jarvis
-- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35110640959
+- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35152281697
 
 ## Hent
 
-- **boringNotch-jarvis-313c32f.dmg** — dobbeltklik og træk **boringNotch** over i **Programmer**.
-- **boringNotch-jarvis-313c32f.zip** — pak ud og træk **boringNotch.app** til **/Programmer**. Virker altid.
+- **boringNotch-jarvis-6d4fea8.dmg** — dobbeltklik og træk **boringNotch** over i **Programmer**.
+- **boringNotch-jarvis-6d4fea8.zip** — pak ud og træk **boringNotch.app** til **/Programmer**. Virker altid.
 
-**Første gang advarer macOS**, fordi appen er ad hoc-signeret (ingen Apple-udviklerkonto).
+- signering: ad hoc
+
+**Første gang advarer macOS**, fordi appen ikke er signeret med en Apple-udviklerkonto.
 Højreklik på appen → **Åbn** → **Åbn**, eller i Terminal:
 
 ```bash
@@ -37,12 +39,12 @@ Resten af trinnene (tilladelser, login, Jarvis-adressen) står i `JARVIS-OPSKRIF
 
 ## Hvad er nyt
 
-- Vælg Jarvis-appen i listen over kørende apps — dobbeltgængeren er lukket</description>
+- Fast certifikat, ja/nej paa kortene, dagens linje, og «Sig det til Jarvis…»</description>
       <enclosure
-        url="https://github.com/lubbe05/jarvis-notch/releases/download/jarvis-v20260916-313c32f/boringNotch-jarvis-313c32f.zip"
-        length="8088277"
+        url="https://github.com/lubbe05/jarvis-notch/releases/download/jarvis-v20260916-6d4fea8/boringNotch-jarvis-6d4fea8.zip"
+        length="8147066"
         type="application/octet-stream"
-        sparkle:edSignature="2CH03JiN+ZysTrmexkbFQGYEyWzsLd8liZYEXGtjkbRiXTwRgw3ZBQRrL3EHrNZBGbu6T3RPh/DdQLXo7Ya5Dg==" />
+        sparkle:edSignature="AGzyIGxEm81jIXYxoPRnRQ25AuwxQ+BVjSML5EZynq0cBDTvni7Breiof171Gl4rMw/cx1u1e0FoPqov5rHeAg==" />
     </item>
   </channel>
 </rss>
