@@ -114,10 +114,15 @@ opføre sig pænt når appen ligger i **/Programmer** og karantænen er væk
 **7. Jarvis-adressen.** Settings → **Jarvis** → skriv
 `http://<din-tailscale-adresse>:8000/notch` → **Test** skal svare «Jarvis svarede».
 
-**8. Slå automatiske opdateringer fra.** Settings → **About** →
-«Automatically check for updates» **fra**. Ellers kan appen en dag opdatere
-sig selv til The Boring Teams officielle udgave — og så er Jarvis-fanen væk.
-Vil du have nyt fra opstrøms, tager vi det i huset og bygger igen.
+**8. Lad automatiske opdateringer stå TIL.** Settings → **About** →
+«Automatically check for updates» **til**. Fra 16/9 spørger appen ikke længere
+The Boring Team, men **huset** — se afsnittet **«Opdateringer gennem appen»**
+nedenfor. Den kan altså ikke længere opdatere Jarvis-fanen væk, og du slipper
+for at hente en zip i hånden hver gang.
+
+*(Havde du slået den fra efter en tidligere udgave af den her opskrift, så slå
+den til igen — men først når du har installeret en app, der er bygget efter
+16/9. En ældre kopi peger stadig på opstrøms.)*
 
 ### Hvis appen ikke starter (forskellige team-id'er)
 
@@ -232,6 +237,123 @@ minutter igen.
 
 **B. Byg på din egen Mac i stedet.** Så koster det ingen GitHub-minutter
 overhovedet — se **«Byg selv i Xcode»** nedenfor. Det kræver Xcode installeret.
+
+## Opdateringer gennem appen
+
+**Kort:** fra 16/9 kan du hente ny kode inde i appen — Settings → **About** →
+**«Check for updates»** — i stedet for at gå på GitHub efter en zip. Der er
+**én** håndvending først, og den kan ikke undgås.
+
+### Den ene gang i hånden
+
+Den app, du har i dag, er bygget med The Boring Teams opdaterings-adresse og
+**deres** nøgle. Den kan ikke opdatere sig over til vores — Sparkle tjekker
+opdateringen mod nøglen i den app, der **allerede** er installeret, og vores
+nøgle står der ikke endnu. Derfor:
+
+1. Hent den nyeste udgivelse i hånden, som beskrevet i punkt 1 ovenfor:
+   <https://github.com/lubbe05/jarvis-notch/releases/latest>
+   (du skal have en, hvis `commit:`-linje er fra **16/9 eller senere** — det er
+   den første med husets nøgle i).
+2. Luk den gamle app (menulinjens ikon → **Quit**), træk den nye til
+   **/Programmer**, sig **Erstat**.
+3. Kør de to kommandoer i Terminal — også selv om appen ser ud til at starte.
+   Den første signerer appen og alt indeni ad hoc, så alle dele har det samme
+   (tomme) team-id; den anden fjerner karantænen:
+
+   ```bash
+   codesign --force --deep --sign - /Applications/boringNotch.app && xattr -dr com.apple.quarantine /Applications/boringNotch.app
+   ```
+
+4. Start appen. Settings → **About** → slå **«Automatically check for
+   updates»** **til**.
+
+Derefter er det slut med at hente i hånden.
+
+### Sådan gør du bagefter
+
+Settings → **About** → **«Check for updates»**. Er der noget nyt, siger appen
+det selv, henter det, og beder dig om at genstarte den. Med det automatiske tjek
+slået til spørger den også af sig selv med jævne mellemrum.
+
+### Hvad huset gør
+
+Efter hvert **grønt** byg kører huset én kommando:
+
+```bash
+notch_appcast.py udgiv
+```
+
+Den henter release-zip'en fra GitHub, læser appens eget versionsnummer ud af
+den, signerer zip'en med husets private Ed25519-nøgle og skubber en ny
+`appcast.xml` til grenen `appcast` i repoet. Det er den fil, din app henter:
+
+```
+https://raw.githubusercontent.com/lubbe05/jarvis-notch/appcast/appcast.xml
+```
+
+Kommandoen kan køres igen og igen uden at lave rod: er der intet nyt, skriver
+den intet. Den private nøgle ligger **kun** på husets maskine i
+`~/.jarvis/notch/sparkle-ed25519.key` og kommer aldrig i et repo. Den
+offentlige halvdel står i appens `Info.plist` som `SUPublicEDKey` — det er den,
+din app bruger til at afvise alt, huset ikke har signeret.
+
+Bemærk: `raw.githubusercontent.com` cacher filen i op mod fem minutter. Siger
+appen «du er opdateret» lige efter et byg, så prøv igen om lidt.
+
+### Det ærlige forbehold
+
+Appen er **ad hoc-signeret** — bygget uden Apple-udviklerkonto. Normalt vil
+Sparkle se, at den nye app er signeret af den samme udvikler som den gamle, og
+det kan vores aldrig: en ad hoc-signatur hører til den enkelte binær og er
+forskellig fra byg til byg. Sparkles regel står ordret i dens egen kilde
+([`Sparkle/SUUpdateValidator.m`](https://github.com/sparkle-project/Sparkle/blob/2.x/Sparkle/SUUpdateValidator.m),
+`validateUpdateForHost:`):
+
+> If the update is a bundle, then it must meet any one of:
+> * old and new Ed(DSA) public keys are the same and valid (it allows change of Code Signing identity), or
+> * old and new Code Signing identity are the same and valid
+
+**Én** af de to skal passe — og hos os er det den første: EdDSA-signaturen. Den
+er derfor ikke en ekstra sikkerhed oven i noget andet; den er det **eneste**,
+der står mellem din app og en forfalsket opdatering. Derfor er nøglen på husets
+maskine og ingen andre steder.
+
+Sparkles anden regel forbyder at *fjerne* en kodesignatur, og den nævner ad hoc
+direkte:
+
+> The old bundle is code signed but the update is not code signed. Sparkle only
+> supports rotation, but not removal of Apple Code Signing identity. Please code
+> sign the new app. If no Apple Code Signing certificate is available, adhoc
+> signing can be used at minimum.
+
+Ad hoc **tæller** altså som kodesigneret, og byggemaskinen signerer i forvejen
+hver eneste del ad hoc (trinnet «Signér alle indlejrede dele ad hoc»). Så begge
+regler er opfyldt.
+
+To ting følger af det, og de er værd at kende:
+
+- **macOS' karantæne fjernes ikke af Sparkle.** Opdateringen kommer ikke med en
+  Apple-notarisering, og en opdatering, appen selv har hentet, plejer ikke at
+  blive sat i karantæne — men starter en opdateret app ikke, er kuren den samme
+  som i punkt 3 ovenfor.
+- **Vi kan ikke skifte nøgle over luften.** Skulle husets nøgle en dag blive
+  skiftet, kræver Sparkle enten den gamle nøgle eller en matchende
+  kodesignatur — og den sidste har vi ikke. Så bliver det én installation i
+  hånden igen. Nøglen skal altså blive, hvor den er.
+
+### Hvis appen siger «du er opdateret», men der er noget nyt
+
+- Er repoet stadig privat, kan hverken appen eller huset hente noget.
+  `raw.githubusercontent.com` og GitHubs release-API svarer kun på et
+  **offentligt** repo uden nøgle. Det skal altså gøres offentligt, før det her
+  virker overhovedet.
+- Er bygget rødt, er der ingen ny udgivelse — og så er der med rette ingen
+  opdatering.
+- Kør huset `notch_appcast.py udgiv` efter bygget? Uden den er appcasten
+  stadig den gamle.
+- Har du en app fra **før** 16/9? Så peger den stadig på opstrøms. Tag
+  håndvendingen ovenfor.
 
 ## Byggeloggen: sådan ser huset hvad der gik galt
 

@@ -81,6 +81,18 @@ jobs:
           xcodebuild -resolvePackageDependencies -project "${PROJECT_NAME}.xcodeproj" >> "$LOG" 2>&1 || true
           echo "== bygger ==" >> "$LOG"
 
+          # BUILD-NUMMERET ER DET, DER AFGØR, OM SPARKLE TILBYDER OPDATERINGEN.
+          # Projektets faste CURRENT_PROJECT_VERSION = 271 er den samme i hvert
+          # eneste byg, og Sparkle sammenligner netop det tal (CFBundleVersion)
+          # med det, der står i appcasten: er de ens, siger appen «du er
+          # opdateret» for evigt, og «hent ny kode gennem appen» virker aldrig.
+          # Antallet af commits på grenen vokser af sig selv ved hver rettelse
+          # og er allerede forbi 271 (1281 den 16/9), så det bruger vi.
+          # Huset GÆTTER ikke på tallet bagefter — notch_appcast.py læser det ud
+          # af den app, der faktisk blev udgivet.
+          BUILD_NUMMER="$(git rev-list --count HEAD)"
+          echo "== build-nummer (commits på grenen): $BUILD_NUMMER ==" >> "$LOG"
+
           byg_med() {
             xcodebuild build "$@" \
               -project "${PROJECT_NAME}.xcodeproj" \
@@ -88,6 +100,7 @@ jobs:
               -derivedDataPath "$DD" \
               ARCHS="$ARKITEKTURER" \
               ONLY_ACTIVE_ARCH=NO \
+              CURRENT_PROJECT_VERSION="$BUILD_NUMMER" \
               CODE_SIGN_STYLE=Manual \
               CODE_SIGN_IDENTITY="-" \
               CODE_SIGNING_REQUIRED=YES \
