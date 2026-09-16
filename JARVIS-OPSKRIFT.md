@@ -50,21 +50,27 @@ kommer noget nyt på grenen `jarvis`. Opskriften ligger i
 ingen hemmeligheder — appen bliver «ad hoc-signeret», og det har konsekvenser
 du skal kende (de står ærligt nedenfor).
 
-**1. Hent den færdige app.**
-Gå til <https://github.com/lubbe05/jarvis-notch> → fanen **Actions** → i
-listen til venstre: **«Jarvis: byg appen»** → klik øverste (nyeste) kørsel.
-Er der et grønt flueben, så rul ned til **Artifacts** og hent
-**`boringNotch-jarvis-<sha7>`** (de sidste syv tegn af commit'en). Artifacts
-ligger i 30 dage.
-
-Browseren henter en `.zip`. Pak den ud — indeni ligger to ting, og du skal kun
-bruge én af dem:
+**1. Hent den færdige app — det almindelige downloadlink.**
+Gå til <https://github.com/lubbe05/jarvis-notch/releases/latest> (samme link
+står øverst i README'en som **«Hent nyeste boringNotch med Jarvis»**). Rul ned
+til **Assets** og hent én af de to:
 
 - `boringNotch-jarvis-<sha7>.dmg` — dobbeltklik, træk **boringNotch** over i
   **Programmer**.
 - `boringNotch-jarvis-<sha7>.zip` — pak ud, træk **boringNotch.app** til
   **/Programmer**. (Denne vej virker altid; dmg'en laves kun hvis
-  dmg-værktøjet kunne installeres på byggemaskinen.)
+  dmg-værktøjet kunne installeres på byggemaskinen — mangler den, siger
+  udgivelsesteksten det.)
+
+Der kommer en ny udgivelse af sig selv efter hvert **grønt** byg på grenen
+`jarvis`; den hedder `jarvis-v<dato>-<sha7>`, og `…/releases/latest` peger
+altid på den nyeste. Fejler bygget, kommer der ingen udgivelse — så står den
+forrige stadig, og den virker.
+
+*Reserve, hvis en udgivelse skulle mangle:* fanen **Actions** →
+**«Jarvis: byg appen»** → øverste (nyeste) kørsel med grønt flueben → ned til
+**Artifacts** → **`boringNotch-jarvis-<sha7>`**. Browseren henter en `.zip` med
+de samme to filer indeni. Artifacts ligger kun i 30 dage; udgivelserne bliver.
 
 **2. Luk den gamle først.** Klik menulinjens ikon → **Quit**, ellers vil macOS
 ikke lade dig erstatte appen. Sig **Erstat** når Finder spørger.
@@ -117,7 +123,9 @@ Vil du have nyt fra opstrøms, tager vi det i huset og bygger igen.
 
 Hver gang huset skubber til grenen `jarvis`, starter bygget af sig selv
 (og du kan selv starte et: Actions → «Jarvis: byg appen» → **Run workflow**).
-Så henter du bare den nyeste artifact og gentager punkt 1-3 og 6.
+Bliver det grønt, står den færdige app som en ny udgivelse på
+<https://github.com/lubbe05/jarvis-notch/releases/latest> — med en linje om
+hvad der er nyt. Så henter du bare den og gentager punkt 1-3 og 6.
 
 Rettelser der kun rører tekst og opskrifter skubbes med `[skip ci]` i
 commit-beskeden, så de ikke koster en hel Mac-byggetur. Derfor kan den nyeste
@@ -137,8 +145,9 @@ offentligt, så det er dit valg.
 Huset har ingen adgang til GitHubs Actions-side. Derfor skriver bygget sin egen
 log tilbage til repoet — også når det fejler — på grenen **`build-logs`**:
 
-- `build-logs/latest.md` — status (grøn/rød), dato, sha, link til kørslen, de
-  første 200 `error:`/`warning:`-linjer og de sidste 80 linjer af loggen
+- `build-logs/latest.md` — status (grøn/rød), dato, sha, link til kørslen, hvilken
+  udgivelse der kom ud af det (og hvilke filer der er vedhæftet), de første 200
+  `error:`/`warning:`-linjer og de sidste 80 linjer af loggen
 - `build-logs/fejl.txt` — alle `error:`-linjer
 - `build-logs/byggelog-hale.txt` — de sidste 1500 linjer rå log
 

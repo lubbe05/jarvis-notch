@@ -1,3 +1,26 @@
+## Denne kopi har Jarvis-fanen
+
+Det her er The Boring Teams `boring.notch` med én tilføjelse: en fane **«Jarvis»** i
+notchen, der viser hvad huset laver. Alt andet er som hos opstrøms.
+
+### ➜ [**Hent nyeste boringNotch med Jarvis**](https://github.com/lubbe05/jarvis-notch/releases/latest)
+
+Linket åbner den nyeste udgivelse. Hent `.dmg`-filen under **Assets** (eller `.zip`,
+hvis dmg'en mangler) og træk **boringNotch** over i **Programmer**. Der kommer en ny
+udgivelse af sig selv, hver gang huset har bygget noget nyt der virker.
+
+**Første gang advarer macOS**, fordi appen er signeret uden Apple-udviklerkonto:
+højreklik på appen → **Åbn** → **Åbn**, eller kør
+`xattr -dr com.apple.quarantine /Applications/boringNotch.app` — hele vejen igennem
+står i [JARVIS-OPSKRIFT.md](JARVIS-OPSKRIFT.md).
+
+> [!IMPORTANT]
+> Den store **«Download for macOS»**-knap længere nede på siden er The Boring Teams
+> egen, officielle app — **UDEN Jarvis-fanen**. Den lader vi stå, som den er.
+> Vil du have Jarvis med, er det linket herover du skal bruge.
+
+---
+
 <h1 align="center">
   <br>
   <a href="http://theboring.name"><img src="https://framerusercontent.com/images/RFK4vs0kn8pRMuOO58JeyoemXA.png?scale-down-to=256" alt="Boring Notch" width="150"></a>

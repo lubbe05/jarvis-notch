@@ -5,9 +5,11 @@
 # præcis som projektets egen indstilling CODE_SIGN_IDENTITY[sdk=macosx*] = "-" allerede siger.
 # macOS advarer første gang mod en ad hoc-signeret app — se JARVIS-OPSKRIFT.md.
 #
-# Resultatet ligger to steder:
-#   1. Actions-fanen  -> artifact «boringNotch-jarvis-<sha7>» (zip + dmg, 30 dage)
-#   2. Grenen «build-logs» -> build-logs/latest.md, så huset kan læse fejlene uden GitHub-adgang
+# Resultatet ligger tre steder:
+#   1. Releases       -> en udgivelse pr. grønt byg, så https://github.com/<repo>/releases/latest
+#                        altid er et almindeligt downloadlink (zip + dmg, ligger for altid)
+#   2. Actions-fanen  -> artifact «boringNotch-jarvis-<sha7>» (zip + dmg, 30 dage)
+#   3. Grenen «build-logs» -> build-logs/latest.md, så huset kan læse fejlene uden GitHub-adgang
 
 name: "Jarvis: byg appen"
 
@@ -39,6 +41,10 @@ jobs:
     steps:
       - name: Hent koden
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Hele historikken og alle tags: udgivelsens «hvad er nyt» er commit-beskederne
+          # siden forrige release-tag, og dem kan man ikke se i en overfladisk klon.
+          fetch-depth: 0
 
       - name: Kort sha
         id: sha
@@ -159,6 +165,101 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
+      # Et almindeligt downloadlink til Lauritz. Hvert GRØNT byg på grenen bliver en
+      # GitHub Release, så .../releases/latest altid peger på den nyeste app med Jarvis-fanen.
+      # Rødt byg = ingen release. Mislykkedes dmg'en, udgives zip'en alligevel, og
+      # udgivelsesteksten siger at dmg'en mangler.
+      - name: Udgiv en Release (kun når bygget er grønt)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KORT: ${{ steps.sha.outputs.kort }}
+        run: |
+          set -uo pipefail
+          exec > >(tee "$RUNNER_TEMP/release.log") 2>&1
+
+          if [ "${BYG_STATUS:-1}" != "0" ] || [ "${HAR_APP:-nej}" != "ja" ]; then
+            echo "Bygget var ikke grønt — ingen udgivelse denne gang."
+            exit 0
+          fi
+
+          UD="$RUNNER_TEMP/ud"
+          NAVN="${PROJECT_NAME}-jarvis-${KORT}"
+          ZIP="$UD/${NAVN}.zip"
+          DMG="$UD/${NAVN}.dmg"
+
+          TAG="jarvis-v$(date -u +%Y%m%d)-${KORT}"
+          DATO="$(date -u '+%-d/%-m-%Y')"
+
+          # Kørte samme commit igen samme dag, så findes tagget allerede: ryd det væk først,
+          # så udgivelsen bliver skrevet forfra i stedet for at fejle.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Udgivelsen $TAG fandtes i forvejen — den erstattes."
+            gh release delete "$TAG" --yes --cleanup-tag || true
+          fi
+
+          FORRIGE="$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)"
+          NYT="$RUNNER_TEMP/nyt.txt"
+          if [ -n "$FORRIGE" ] && git rev-parse -q --verify "refs/tags/${FORRIGE}" >/dev/null; then
+            git log --no-merges --format='- %s' "refs/tags/${FORRIGE}..HEAD" \
+              | sed 's/ *\[skip ci\]//' | head -n 30 > "$NYT"
+          else
+            git log --no-merges --format='- %s' -n 10 | sed 's/ *\[skip ci\]//' > "$NYT"
+          fi
+          [ -s "$NYT" ] || echo "- (ingen nye commits siden sidste udgivelse)" > "$NYT"
+
+          VEDHAEFT=""
+          [ -f "$ZIP" ] && VEDHAEFT="$VEDHAEFT $ZIP"
+          if [ -f "$DMG" ]; then
+            VEDHAEFT="$VEDHAEFT $DMG"
+            DMG_LINJE="- **${NAVN}.dmg** — dobbeltklik og træk **boringNotch** over i **Programmer**."
+          else
+            DMG_LINJE="- **dmg'en mangler denne gang** (pakningen fejlede på byggemaskinen) — brug zip'en."
+          fi
+
+          BODY="$RUNNER_TEMP/body.md"
+          {
+            echo "boringNotch med Jarvis-fanen, bygget hos GitHub på en Mac."
+            echo
+            echo "- dato: ${DATO}"
+            echo "- commit: \`${GITHUB_SHA}\`"
+            echo "- gren: ${GITHUB_REF_NAME}"
+            echo "- kørsel: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+            echo "## Hent"
+            echo
+            echo "$DMG_LINJE"
+            echo "- **${NAVN}.zip** — pak ud og træk **boringNotch.app** til **/Programmer**. Virker altid."
+            echo
+            echo "**Første gang advarer macOS**, fordi appen er ad hoc-signeret (ingen Apple-udviklerkonto)."
+            echo "Højreklik på appen → **Åbn** → **Åbn**, eller i Terminal:"
+            echo
+            echo '```bash'
+            echo "xattr -dr com.apple.quarantine /Applications/boringNotch.app"
+            echo '```'
+            echo
+            echo "Resten af trinnene (tilladelser, login, Jarvis-adressen) står i \`JARVIS-OPSKRIFT.md\`."
+            echo
+            echo "## Hvad er nyt"
+            echo
+            cat "$NYT"
+          } > "$BODY"
+
+          # shellcheck disable=SC2086
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "boringNotch med Jarvis — ${DATO}" \
+            --notes-file "$BODY" \
+            --latest \
+            $VEDHAEFT
+
+          echo "UDGIVELSE=$TAG" >> "$GITHUB_ENV"
+          echo
+          echo "== udgivelsen $TAG =="
+          echo "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
+          echo "== vedhæftede filer =="
+          gh release view "$TAG" --json assets --jq '.assets[] | "\(.name)  \(.size) bytes"'
+
       # Byggeloggen tilbage i repoet, så huset (uden GitHub-adgang) kan læse den med
       #   git fetch origin build-logs && git show origin/build-logs:build-logs/latest.md
       - name: Skriv byggeloggen til grenen build-logs
@@ -181,6 +282,11 @@ jobs:
           else
             ARTIFACT="ingen — der kom ingen .app ud af bygget"
           fi
+          if [ -n "${UDGIVELSE:-}" ]; then
+            RELEASE="${UDGIVELSE} — ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${UDGIVELSE}"
+          else
+            RELEASE="ingen — der udgives kun ved grønt byg"
+          fi
 
           MD="$RUNNER_TEMP/latest.md"
           {
@@ -191,6 +297,7 @@ jobs:
             echo "- sha: ${GITHUB_SHA}"
             echo "- kørsel: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo "- artifact: $ARTIFACT"
+            echo "- udgivelse: $RELEASE"
             echo
             echo '## Fejl og advarsler (de første 200 linjer)'
             echo
@@ -202,6 +309,12 @@ jobs:
             echo
             echo '```'
             if [ -f "$RUNNER_TEMP/pak.log" ]; then tail -n 40 "$RUNNER_TEMP/pak.log"; else echo "(pakningen nåede ikke at køre)"; fi
+            echo '```'
+            echo
+            echo '## Udgivelsen (Release) og de vedhæftede filer'
+            echo
+            echo '```'
+            if [ -f "$RUNNER_TEMP/release.log" ]; then cat "$RUNNER_TEMP/release.log"; else echo "(udgivelsen nåede ikke at køre)"; fi
             echo '```'
             echo
             echo '## Slutningen af loggen (sidste 80 linjer)'
