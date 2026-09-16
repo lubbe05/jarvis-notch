@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Skrevet af husets notch_appcast.py. Ret den ikke i hånden:
+     signaturen nedenfor gælder præcis den fil, den peger på. -->
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>boringNotch med Jarvis</title>
+    <link>https://raw.githubusercontent.com/lubbe05/jarvis-notch/appcast/appcast.xml</link>
+    <description>Husets egne byg af boringNotch med Jarvis-fanen.</description>
+    <language>da</language>
+    <item>
+      <title>boringNotch med Jarvis — 16/9-2026</title>
+      <pubDate>Wed, 16 Sep 2026 10:58:41 +0000</pubDate>
+      <sparkle:version>1285</sparkle:version>
+      <sparkle:shortVersionString>2.7.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <link>https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-fe6dcb8</link>
+      <description>boringNotch med Jarvis-fanen, bygget hos GitHub på en Mac.
+
+- dato: 16/9-2026
+- commit: `fe6dcb80a6c4b6f0944da5319f184b62a961598f`
+- gren: jarvis
+- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35087486774
+
+## Hent
+
+- **boringNotch-jarvis-fe6dcb8.dmg** — dobbeltklik og træk **boringNotch** over i **Programmer**.
+- **boringNotch-jarvis-fe6dcb8.zip** — pak ud og træk **boringNotch.app** til **/Programmer**. Virker altid.
+
+**Første gang advarer macOS**, fordi appen er ad hoc-signeret (ingen Apple-udviklerkonto).
+Højreklik på appen → **Åbn** → **Åbn**, eller i Terminal:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/boringNotch.app
+```
+
+Resten af trinnene (tilladelser, login, Jarvis-adressen) står i `JARVIS-OPSKRIFT.md`.
+
+## Hvad er nyt
+
+- Mærket i den foldede notch passer nu (Lauritz 16/9: «hjernen er halvt klippet af») + «Åbn i»-valget
+- Egen README, ingen tagging af The Boring Team, husets adresse ud af repoet
+- Info.plist: appen spørger huset om opdateringer, ikke The Boring Team
+- Opskriften: «Opdateringer gennem appen» + build-nummer der faktisk vokser
+- Opskriften: kuren mod «different Team IDs» gælder den udgivelse, der ligger nu
+- Opdateringer gennem appen + ærlig fork-advarsel øverst i README
+- Appen starter igen: alle indlejrede dele signeres ad hoc (Lauritz 16/9, «different Team IDs»)
+- Et almindeligt downloadlink (Lauritz 16/9: «kan jeg bare trykke på download-linket derinde?»)
+- Opskriften: rækkefølgen i «Nyt byg» rettet
+- Første byg er grønt — pakningen logges nu også</description>
+      <enclosure
+        url="https://github.com/lubbe05/jarvis-notch/releases/download/jarvis-v20260916-fe6dcb8/boringNotch-jarvis-fe6dcb8.zip"
+        length="8040909"
+        type="application/octet-stream"
+        sparkle:edSignature="8mBNWjIkooZ3Qb4QFMYf0vSNziiYvXa1Aj4zo/vQC0MyhG8HSIZAz7rf2ZAxbRS39RpMHPDQYRYHMZe0GR6MCQ==" />
+    </item>
+  </channel>
+</rss>
