@@ -4,11 +4,14 @@ Lauritz: den her fil er til dig. Den siger hvad der er bygget, hvad du skal
 gøre på Mac'en, og hvad du skal skrive hvis det ikke vil kompilere.
 
 **Ærligt først:** koden er skrevet i huset på Linux, hvor der hverken er Mac
-eller Xcode. Den er nu **kompileret hos GitHub** (16/9 08:59 UTC, sha 22f56de,
-Xcode 16.4, Release, arm64): **BUILD SUCCEEDED**, ingen fejl og ikke én
-advarsel fra Jarvis-filerne. Men den har **aldrig kørt på en rigtig Mac** —
-at den oversætter er ikke det samme som at fanen står pænt. Ser noget skævt
-ud, er punkt (d) nederst prompten der ordner det.
+eller Xcode. De to faner er **kompileret hos GitHub** (16/9 14:14 UTC, sha
+2f85268, Xcode 16.4, Release, arm64): **BUILD SUCCEEDED**, ingen fejl og ikke én
+advarsel fra Jarvis-filerne, signeringen OK, udgivelsen
+`jarvis-v20260916-2f85268`. Men den har **aldrig kørt på en rigtig Mac** — at
+den oversætter er ikke det samme som at fanerne står pænt. Hvor sætningerne
+knækker, om 760 × 260 er den rigtige størrelse, og om appen faktisk bliver løftet
+frem når du klikker — det ser **du** først. Ser noget skævt ud, er punkt (d)
+nederst prompten der ordner det.
 
 ## Hvad der er bygget
 
