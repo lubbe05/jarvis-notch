@@ -111,6 +111,186 @@ jobs:
           tail -n 60 "$LOG"
           exit $STATUS
 
+      # Kuren på Lauritz' nedbrud 16/9: dyld nægtede at indlæse
+      # MediaRemoteAdapter.framework, fordi appen var ad hoc-signeret (intet team-id),
+      # mens det indlejrede framework stadig bar upstreams Developer ID. Med hardened
+      # runtime skal appen og alle indlejrede binærer have SAMME team-id, og «ingen»
+      # tæller kun som ens, hvis begge er ad hoc. Derfor signeres hele indmaden om her —
+      # indefra og ud — i stedet for at slække på library validation.
+      # (Omsigneringen er lovlig: MediaRemoteAdapter er BSD-licenseret, se THIRD_PARTY_LICENSES.)
+      - name: Signér alle indlejrede dele ad hoc
+        id: signering
+        if: always()
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+
+          APP="$RUNNER_TEMP/dd/Build/Products/Release/${PROJECT_NAME}.app"
+          LOG="$RUNNER_TEMP/signering.log"
+
+          # Dybeste sti først, så en del altid er signeret, før bundtet omkring den forsegles.
+          dybest_foerst() { awk -F/ '{print NF"\t"$0}' | sort -rn -k1,1 | cut -f2-; }
+          er_macho() { file -b "$1" 2>/dev/null | grep -q "Mach-O"; }
+          kort() { if [ "$1" = "$APP" ]; then printf '%s' "${PROJECT_NAME}.app"; else printf '%s' "${1#$APP/}"; fi; }
+
+          hovedet() {
+            ENT_DIR="$RUNNER_TEMP/ent"; rm -rf "$ENT_DIR"; mkdir -p "$ENT_DIR"
+            TAELLER=0
+            FEJL=0
+            MED_TEAM=0
+
+            # Signerer ét sted ad hoc og beholder de rettigheder, der allerede står i
+            # signaturen (XPC-hjælperen skal fx blive ved med at stå uden for sandkassen).
+            signer() {
+              STI="$1"
+              TAELLER=$((TAELLER + 1))
+              ENT="$ENT_DIR/$TAELLER.plist"
+              RET="ingen rettigheder"
+              set -- --force --sign - --timestamp=none --options runtime
+              if codesign -d --entitlements :- "$STI" > "$ENT" 2>/dev/null \
+                 && [ -s "$ENT" ] && plutil -lint "$ENT" > /dev/null 2>&1; then
+                set -- "$@" --entitlements "$ENT"
+                RET="rettigheder beholdt"
+              else
+                rm -f "$ENT"
+              fi
+              if codesign "$@" "$STI" 2>&1; then
+                echo "   OK   $(kort "$STI")  ($RET)"
+              else
+                echo "   FEJL $(kort "$STI")  ($RET)"
+                FEJL=$((FEJL + 1))
+              fi
+            }
+
+            echo "== 1. indlejrede binærer, dybeste først =="
+            find "$APP" -type f | dybest_foerst > "$RUNNER_TEMP/binaerer.txt"
+            while IFS= read -r F; do
+              if [ "$F" = "$APP/Contents/MacOS/${PROJECT_NAME}" ]; then continue; fi
+              er_macho "$F" || continue
+              signer "$F"
+            done < "$RUNNER_TEMP/binaerer.txt"
+
+            echo
+            echo "== 2. indlejrede bundter, dybeste først =="
+            {
+              find "$APP" -mindepth 1 \( -name "*.app" -o -name "*.xpc" -o -name "*.appex" \
+                   -o -name "*.bundle" -o -name "*.systemextension" \) -type d
+              find "$APP" -mindepth 1 -name "*.framework" -type d | while IFS= read -r FW; do
+                if [ -d "$FW/Versions" ]; then
+                  find "$FW/Versions" -mindepth 1 -maxdepth 1 -type d
+                else
+                  echo "$FW"
+                fi
+              done
+            } | dybest_foerst > "$RUNNER_TEMP/bundter.txt"
+            while IFS= read -r B; do
+              [ -n "$B" ] || continue
+              signer "$B"
+            done < "$RUNNER_TEMP/bundter.txt"
+
+            echo
+            echo "== 3. selve appen =="
+            APP_ENT="$ENT_DIR/app.plist"
+            if codesign -d --entitlements :- "$APP" > "$APP_ENT" 2>/dev/null \
+               && [ -s "$APP_ENT" ] && plutil -lint "$APP_ENT" > /dev/null 2>&1; then
+              echo "   rettighederne er hentet ud af Xcodes egen signatur"
+            else
+              XCENT="$(find "$RUNNER_TEMP/dd/Build/Intermediates.noindex" -name "${PROJECT_NAME}.app.xcent" 2>/dev/null | head -n 1)"
+              if [ -n "${XCENT:-}" ]; then
+                cp "$XCENT" "$APP_ENT"
+                echo "   rettighederne er hentet fra Xcodes mellemregning ($XCENT)"
+              else
+                rm -f "$APP_ENT"
+                echo "   ADVARSEL: ingen rettigheder fundet — appen signeres uden"
+              fi
+            fi
+            if [ -f "$APP_ENT" ]; then
+              echo "   --- appens rettigheder ---"
+              sed 's/^/       /' "$APP_ENT"
+              codesign --force --sign - --timestamp=none --options runtime \
+                       --entitlements "$APP_ENT" "$APP" 2>&1 || FEJL=$((FEJL + 1))
+            else
+              codesign --force --sign - --timestamp=none --options runtime "$APP" 2>&1 || FEJL=$((FEJL + 1))
+            fi
+            echo "   appen er signeret ($FEJL signeringsfejl indtil nu)"
+
+            echo
+            echo "== 4. codesign --verify --deep --strict =="
+            if codesign --verify --deep --strict --verbose=2 "$APP" 2>&1; then
+              VERIFIKATION=OK
+            else
+              VERIFIKATION=FEJLEDE
+            fi
+            echo "   resultat: $VERIFIKATION"
+
+            echo
+            echo "== 5. team-id på hver eneste del (skal stå «not set») =="
+            tjek_team() {
+              T_STI="$1"
+              T_UD="$(codesign -dvv "$T_STI" 2>&1)"
+              T_LINJE="$(printf '%s\n' "$T_UD" | grep -E '^TeamIdentifier=' | head -n 1)"
+              T_CD="$(printf '%s\n' "$T_UD" | grep -E '^CodeDirectory ' | head -n 1)"
+              [ -n "$T_LINJE" ] || T_LINJE="TeamIdentifier=(ingen linje — usigneret?)"
+              if [ "$T_LINJE" = "TeamIdentifier=not set" ]; then
+                echo "   OK   $(kort "$T_STI")  ->  $T_LINJE"
+              else
+                echo "   FEJL $(kort "$T_STI")  ->  $T_LINJE"
+                MED_TEAM=$((MED_TEAM + 1))
+              fi
+              echo "        $T_CD"
+            }
+            while IFS= read -r F; do
+              er_macho "$F" || continue
+              tjek_team "$F"
+            done < "$RUNNER_TEMP/binaerer.txt"
+            while IFS= read -r B; do
+              [ -n "$B" ] || continue
+              tjek_team "$B"
+            done < "$RUNNER_TEMP/bundter.txt"
+            tjek_team "$APP"
+
+            echo
+            echo "== 6. de tre, Lauritz' fejlbesked handlede om =="
+            for N in \
+              "$APP" \
+              "$APP/Contents/Frameworks/MediaRemoteAdapter.framework/Versions/A/MediaRemoteAdapter" \
+              "$APP/Contents/XPCServices/BoringNotchXPCHelper.xpc" ; do
+              echo "--- $(kort "$N")"
+              if [ -e "$N" ]; then
+                codesign -dvv "$N" 2>&1 | grep -E '^(Identifier|Format|CodeDirectory|Signature|TeamIdentifier|Authority)' || true
+              else
+                echo "    findes ikke i dette byg"
+              fi
+            done
+
+            echo
+            if [ "$FEJL" -gt 0 ] || [ "$MED_TEAM" -gt 0 ]; then
+              # Dette er præcis Lauritz' nedbrud. Sådan en app må aldrig udgives.
+              echo "SIGNERINGEN ER IKKE I ORDEN: $FEJL signeringsfejl, $MED_TEAM dele med team-id, --verify: $VERIFIKATION"
+              return 1
+            fi
+            if [ "$VERIFIKATION" != "OK" ]; then
+              # Team-id'erne er rene, så appen starter efter alt at dømme. Vi udgiver den,
+              # men lader bygget stå RØDT, så den skæve forsegling ikke bliver overset.
+              echo "ADVARSEL: team-id'erne er i orden, men --verify --deep --strict fejlede."
+              return 2
+            fi
+            echo "SIGNERINGEN ER I ORDEN: alt er ad hoc, ingen indlejret del har et team-id."
+            return 0
+          }
+
+          if [ "${BYG_STATUS:-1}" != "0" ] || [ ! -d "$APP" ]; then
+            echo "Intet at signere — bygget kom ikke igennem." | tee "$LOG"
+            echo "SIGN_STATUS=sprunget" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          hovedet > "$LOG" 2>&1
+          STATUS=$?
+          cat "$LOG"
+          echo "SIGN_STATUS=$STATUS" >> "$GITHUB_ENV"
+          exit "$STATUS"
+
       - name: Pak appen (zip og dmg)
         if: always()
         run: |
@@ -182,6 +362,15 @@ jobs:
             echo "Bygget var ikke grønt — ingen udgivelse denne gang."
             exit 0
           fi
+          # En app, hvor en indlejret del stadig bærer et fremmed team-id, starter ikke
+          # på Lauritz' Mac (dyld afviser den) — den udgives aldrig (SIGN_STATUS=1).
+          # SIGN_STATUS=2 er team-id'erne rene og appen kørbar; kun forseglingen så skæv
+          # ud, så den udgives, men bygget står rødt til sidst.
+          case "${SIGN_STATUS:-1}" in
+            0|2) ;;
+            *) echo "Signeringen var ikke i orden (SIGN_STATUS=${SIGN_STATUS:-ukendt}) — ingen udgivelse."
+               exit 0 ;;
+          esac
 
           UD="$RUNNER_TEMP/ud"
           NAVN="${PROJECT_NAME}-jarvis-${KORT}"
@@ -282,6 +471,13 @@ jobs:
           else
             ARTIFACT="ingen — der kom ingen .app ud af bygget"
           fi
+          case "${SIGN_STATUS:-}" in
+            0)        SIGNERING="OK — alt ad hoc, ingen indlejret del har et team-id" ;;
+            1)        SIGNERING="FEJL — en indlejret del er ikke ad hoc-signeret (appen ville ikke starte); INTET udgivet" ;;
+            2)        SIGNERING="ADVARSEL — team-id'erne er rene, men --verify --deep --strict fejlede; appen er udgivet, bygget står rødt" ;;
+            sprunget) SIGNERING="sprunget over — der kom ingen app ud af bygget" ;;
+            *)        SIGNERING="ukendt — signeringstrinnet nåede ikke at køre" ;;
+          esac
           if [ -n "${UDGIVELSE:-}" ]; then
             RELEASE="${UDGIVELSE} — ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${UDGIVELSE}"
           else
@@ -297,12 +493,19 @@ jobs:
             echo "- sha: ${GITHUB_SHA}"
             echo "- kørsel: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo "- artifact: $ARTIFACT"
+            echo "- signering: $SIGNERING"
             echo "- udgivelse: $RELEASE"
             echo
             echo '## Fejl og advarsler (de første 200 linjer)'
             echo
             echo '```'
             grep -E "(error|warning):" "$LOG" | head -n 200 || true
+            echo '```'
+            echo
+            echo '## Signeringen (ad hoc) og team-id-tjekket'
+            echo
+            echo '```'
+            if [ -f "$RUNNER_TEMP/signering.log" ]; then tail -n 250 "$RUNNER_TEMP/signering.log"; else echo "(signeringen nåede ikke at køre)"; fi
             echo '```'
             echo
             echo '## Pakningen (zip og dmg)'
@@ -343,3 +546,20 @@ jobs:
           git commit -q -m "Byggelog ${KORT}: ${STATUS}" || echo "(intet nyt at skrive)"
           git push -q origin build-logs
           echo "Byggeloggen står nu på grenen build-logs."
+
+      # Til allersidst, så byggeloggen ovenfor altid når at blive skrevet først:
+      # en app med en fremmed-signeret indmad er et RØDT byg, ikke et grønt.
+      - name: Signeringen skal være i orden
+        if: always()
+        run: |
+          set -uo pipefail
+          case "${SIGN_STATUS:-}" in
+            1) echo "RØDT: en indlejret binær bærer stadig et team-id, der ikke er husets."
+               echo "Appen ville falde med «different Team IDs» på Lauritz' Mac. Intet er udgivet."
+               echo "Se trinnet «Signér alle indlejrede dele ad hoc» og build-logs/latest.md."
+               exit 1 ;;
+            2) echo "RØDT: team-id'erne er rene, og appen ER udgivet, men codesign --verify --deep --strict fejlede."
+               echo "Læs afsnit 4 i trinnet «Signér alle indlejrede dele ad hoc» før næste byg."
+               exit 1 ;;
+          esac
+          echo "Signeringen er i orden (SIGN_STATUS=${SIGN_STATUS:-sprunget})."

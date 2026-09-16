@@ -119,6 +119,51 @@ opføre sig pænt når appen ligger i **/Programmer** og karantænen er væk
 sig selv til The Boring Teams officielle udgave — og så er Jarvis-fanen væk.
 Vil du have nyt fra opstrøms, tager vi det i huset og bygger igen.
 
+### Hvis appen ikke starter (forskellige team-id'er)
+
+Starter appen slet ikke — den hopper op og forsvinder igen, eller Konsol viser
+
+```
+dyld: Library not loaded: @rpath/MediaRemoteAdapter.framework/Versions/A/MediaRemoteAdapter
+Reason: code signature in '…/MediaRemoteAdapter' not valid for use in process:
+mapping process and mapped file (non-platform) have different Team IDs
+```
+
+— så er det ikke en fejl i Jarvis-fanen. Det er signaturerne der ikke passer
+sammen: **appen** var ad hoc-signeret (uden udviklerkonto, altså uden team-id),
+mens et af de **indlejrede** frameworks stadig bar den oprindelige udviklers
+signatur. Appen kører med «hardened runtime», og den regel siger, at en app kun
+må indlæse kode med samme team-id som sin egen. To forskellige team-id'er =
+dyld siger nej, før appen overhovedet når at tegne noget.
+
+**Kuren i Terminal** (virker på en app du allerede har hentet):
+
+```bash
+codesign --force --deep --sign - /Applications/boringNotch.app && xattr -dr com.apple.quarantine /Applications/boringNotch.app
+```
+
+Første kommando signerer appen **og alt indeni** ad hoc, så alle dele har det
+samme (tomme) team-id. Den anden fjerner karantænen, så macOS ikke spørger igen.
+Start appen bagefter. Siger den første kommando `replacing existing signature`
+en håndfuld gange, er det som det skal være.
+
+Vil du selv se om det hjalp:
+
+```bash
+codesign -dvv /Applications/boringNotch.app 2>&1 | grep TeamIdentifier
+codesign -dvv /Applications/boringNotch.app/Contents/Frameworks/MediaRemoteAdapter.framework/Versions/A/MediaRemoteAdapter 2>&1 | grep TeamIdentifier
+```
+
+Begge skal svare `TeamIdentifier=not set`. Står der et team-id i den nederste,
+er omsigneringen ikke slået igennem — kør kommandoen igen med `sudo`.
+
+*Byggemaskinen gør nu det samme af sig selv.* Trinnet **«Signér alle indlejrede
+dele ad hoc»** i `jarvis_build.yml` signerer hver eneste indlejret binær om
+indefra og ud efter bygget, tjekker bagefter at ingen af dem har et team-id, og
+**lader bygget stå rødt og udgiver ingenting**, hvis en af dem gør. Så en app,
+du henter fra `releases/latest`, skulle ikke have problemet. Kommandoen ovenfor
+er håndkuren, hvis du sidder med en ældre kopi.
+
 ### Nyt byg, når der er rettet noget
 
 Hver gang huset skubber til grenen `jarvis`, starter bygget af sig selv
@@ -136,9 +181,39 @@ commit godt stå uden kørsel — tag så den nyeste kørsel der er.
 Repoet er privat, og macOS-maskiner tæller 10× i GitHubs gratis timer. Derfor:
 vi bygger kun **arm64** (alle Mac'er med notch er Apple Silicon), og opstrøms
 eget `cicd.yml` er slået fra i vores kopi, så vi ikke betaler for det samme byg
-to gange. Løber timerne alligevel tør, er løsningen at gøre repoet offentligt
-(så er Actions gratis) — men så ligger Tailscale-adressen i opskriften også
-offentligt, så det er dit valg.
+to gange.
+
+### Hvis timerne er brugt op
+
+Løber de gratis timer tør, stopper byggene uden varsel: en ny commit på grenen
+`jarvis` får ingen kørsel, `build-logs/latest.md` bliver ikke opdateret, og
+Actions-siden siger noget om at betalingen mangler. Så er der to veje.
+
+**A. Gør repoet offentligt — så er Actions gratis.** GitHub tager ikke betaling
+for Actions i offentlige repoer, hverken for Linux eller macOS. Fremgangsmåden:
+repoets **Settings** → helt ned i bunden → **Danger Zone** → **Change repository
+visibility** → **Make public**.
+
+Hvad det koster af privatliv, ærligt:
+
+- Koden er alligevel boringNotch, som er frit tilgængelig i forvejen. Det nye,
+  der bliver offentligt, er **Jarvis-fanen** og **denne opskrift**.
+- Opskriften nævner husets adresse, `http://<din-tailscale-adresse>:8000/notch`. Det er
+  en **Tailscale-adresse** (100.64–100.127-serien). Den kan kun nås indefra dit
+  eget Tailscale-net — en fremmed på det åbne internet kan ikke ringe på den,
+  uanset at han kender tallet. Adressen er altså ikke en dør, men den fortæller
+  at huset findes, og hvad det hedder indenfor.
+- Vil du ikke engang det: erstat adressen med `http://DIN-JARVIS-ADRESSE:8000/notch`
+  her i opskriften **før** du gør repoet offentligt, og skriv den rigtige
+  adresse ind i appens Settings → Jarvis i hånden. Der er ingen nøgler,
+  adgangskoder eller certifikater nogen steder i repoet — det har der aldrig
+  været, og bygget bruger kun GitHubs eget `GITHUB_TOKEN`.
+
+Fortryder du, kan repoet gøres privat igen samme sted. Så koster byggene
+minutter igen.
+
+**B. Byg på din egen Mac i stedet.** Så koster det ingen GitHub-minutter
+overhovedet — se **«Byg selv i Xcode»** nedenfor. Det kræver Xcode installeret.
 
 ## Byggeloggen: sådan ser huset hvad der gik galt
 
@@ -146,8 +221,10 @@ Huset har ingen adgang til GitHubs Actions-side. Derfor skriver bygget sin egen
 log tilbage til repoet — også når det fejler — på grenen **`build-logs`**:
 
 - `build-logs/latest.md` — status (grøn/rød), dato, sha, link til kørslen, hvilken
-  udgivelse der kom ud af det (og hvilke filer der er vedhæftet), de første 200
-  `error:`/`warning:`-linjer og de sidste 80 linjer af loggen
+  udgivelse der kom ud af det (og hvilke filer der er vedhæftet), **signeringens
+  dom** (om nogen indlejret del stadig har et team-id) med hele
+  team-id-optællingen, de første 200 `error:`/`warning:`-linjer og de sidste 80
+  linjer af loggen
 - `build-logs/fejl.txt` — alle `error:`-linjer
 - `build-logs/byggelog-hale.txt` — de sidste 1500 linjer rå log
 
