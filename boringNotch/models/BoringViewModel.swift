@@ -190,11 +190,20 @@ class BoringViewModel: NSObject, ObservableObject {
     }
 
     func open() {
-        self.notchSize = openNotchSize
+        // JARVIS: den åbne flade følger fanen — Jarvis-fanerne er større.
+        self.notchSize = aabenNotchStoerrelse(for: self.coordinator.currentView)
         self.notchState = .open
         
         // Force music information update when notch is opened
         MusicManager.shared.forceUpdate()
+    }
+
+    /// JARVIS: kaldes når han skifter fane mens notchen er åben, så fladen
+    /// vokser og skrumper med fanen i stedet for først ved næste åbning.
+    func opdaterAabenStoerrelse() {
+        guard notchState == .open else { return }
+        let nyt = aabenNotchStoerrelse(for: coordinator.currentView)
+        if nyt != notchSize { notchSize = nyt }
     }
 
     func close() {

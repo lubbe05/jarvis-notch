@@ -5,8 +5,8 @@
 ## 1. Hvad er det her?
 
 Det er en **privat fork** af [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch),
-lavet til ét hjem. Der er lagt **én fane** til — «Jarvis» — som viser, hvad husets
-system laver. Alt andet i appen er deres arbejde.
+lavet til ét hjem. Der er lagt **to faner** til — «Jarvis» og «Aktier» — som viser,
+hvad husets system laver. Alt andet i appen er deres arbejde.
 
 - **Det er ikke et officielt projekt.** The Boring Team har ikke lavet eller
   godkendt denne kopi og har intet med den at gøre.
@@ -76,16 +76,31 @@ maskine — den står ikke i koden, og appen sender aldrig noget den anden vej.
 
 *Lauritz: din adresse står i kortet i Kommandocentret.*
 
-Så har du:
+Så har du **to nye faner** i den udfoldede notch. Begge folder notchen lidt
+større ud end appens egne faner (760 × 260 mod 640 × 190), så husets sætninger —
+tallene står i ord, ikke i cifre — kan bryde over flere linjer i stedet for at
+blive klippet med «…». Hjem og Hylde beholder deres størrelse.
 
-- **En tredje fane «Jarvis»** i den udfoldede notch: hvor mange kort der venter,
-  det seneste kort (klik åbner web-appen), hvad huset sidst gjorde, depotets værdi
-  og dagens ændring, næste regnskab, laboratoriernes ene sætning, og en prik pr.
-  agent (grøn arbejder, grå hviler, rød fejl — hold musen over for navnet).
-- **Et lille mærke i den foldede notch** — et hjerne-ikon med antallet, men kun
-  når der faktisk venter kort, og kun når der ikke spiller musik.
+- **«Jarvis» (hjerne-ikonet) — kommandocentret:** hvor mange kort der venter
+  (badge + husets egne ord), det nyeste kort med afsender (klik åbner præcis det
+  kort), nye beskeder fra huset, hvad huset laver lige nu + hvad det sidst
+  leverede og hvornår, navn og farve pr. agent (grøn arbejder, grå hviler, rød
+  fejl), og knappen **«Åbn Kommandocenter»**.
+- **«Aktier» (kurve-ikonet):** depotets værdi **stort** og i ord, dagens ændring
+  i ord med pil og farve — **grøn op, rød ned, grå uændret** — næste regnskab
+  («MU aflægger regnskab om 14 dage», med «foreløbig dato» hvis datoen er
+  kildens gæt), laboratoriernes ene sætning, og knappen **«Åbn Investor»**.
+- **Et lille mærke i den foldede notch** — en prik med antallet, men kun når der
+  faktisk venter kort, og kun når der ikke spiller musik. Uændret.
+
+Begge knapper følger valget **Settings → Jarvis → «Open in»**: kører
+Jarvis-appen på Mac'en allerede, bliver den løftet frem (også hvis den er skjult
+eller har fået sit vindue lukket); ellers startes den, og som sidste redning
+åbnes web-appen. Feltet **«App name»** skal være udfyldt med det navn appen har i
+**Programmer** (fx `Jarvis`) — ellers går klikket direkte i browseren.
 
 Svarer huset ikke, står der én dæmpet linje: «Jarvis er ikke at nå». Ingen popups.
+Der hentes stadig kun **ét** kald i minuttet: begge faner læser samme svar.
 
 ## 5. Opdateringer
 
@@ -112,14 +127,22 @@ Alt nyt ligger i sin egen mappe, så opstrøms-opdateringer kan flettes ind:
 | --- | --- |
 | `boringNotch/Jarvis/JarvisModel.swift` | svaret fra husets bro + tilstanden i appen |
 | `boringNotch/Jarvis/JarvisPoller.swift` | henter `GET /notch` hvert 60. sekund |
-| `boringNotch/Jarvis/JarvisView.swift` | fanen + mærket i den foldede notch |
+| `boringNotch/Jarvis/JarvisView.swift` | fanen «Jarvis» (kommandocentret) + mærket i den foldede notch |
+| `boringNotch/Jarvis/JarvisAktierView.swift` | fanen «Aktier» — depotets værdi, dagens ændring, regnskab, labs |
+| `boringNotch/Jarvis/JarvisFaelles.swift` | det de to faner deler: skallen, rækkerne, knappen, farverne |
 | `boringNotch/Jarvis/JarvisSettingsView.swift` | indstillingen «Jarvis» |
 
 Rørt ved i forvejen eksisterende filer — små tilføjelser, mærket `// JARVIS`:
 `ContentView.swift`, `boringNotchApp.swift`,
 `components/Notch/BoringHeader.swift`, `components/Tabs/TabSelectionView.swift`,
 `components/Settings/SettingsView.swift`, `enums/generic.swift`,
-`models/Constants.swift`, `Localizable.xcstrings` og `boringNotch.xcodeproj`.
+`models/Constants.swift`, `models/BoringViewModel.swift`, `sizing/matters.swift`,
+`Localizable.xcstrings` og `boringNotch.xcodeproj`.
+
+Den åbne størrelse styres ét sted: `aabenNotchStoerrelse(for:)` i
+`sizing/matters.swift` giver `jarvisOpenNotchSize` for de to Jarvis-faner og
+`openNotchSize` for resten; `ContentView` spænder den åbne flade fast på
+`vm.notchSize` i både bredde og højde, så ingen anden fane flyder med ud.
 
 Derudover:
 

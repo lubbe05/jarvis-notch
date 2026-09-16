@@ -14,7 +14,31 @@ let batterySneakSize: CGSize = .init(width: 160, height: 1)
 
 let shadowPadding: CGFloat = 20
 let openNotchSize: CGSize = .init(width: 640, height: 190)
-let windowSize: CGSize = .init(width: openNotchSize.width, height: openNotchSize.height + shadowPadding)
+
+// JARVIS: de to Jarvis-faner folder notchen større ud end husets egne faner.
+// Lauritz 16/9: «vil gerne have den lidt større så jeg kan se flere ting — den
+// behøver ikke være samme størrelse som de andre sider». Tallene i ord (fx
+// «cirka 167 tusind kroner» og «to tusind kroner op siden seneste lukkekurs»)
+// er lange sætninger, ikke tal, og de må ikke klippes med «…».
+let jarvisOpenNotchSize: CGSize = .init(width: 760, height: 260)
+
+/// Vinduet har én fast størrelse hele appens levetid (det oprettes én gang i
+/// `createBoringNotchWindow` og flyttes kun), så det skal kunne rumme den
+/// STØRSTE åbne flade. Selve notchen er stadig præcis `vm.notchSize` bred og
+/// høj — `ContentView` spænder den åbne flade fast på det mål — så de øvrige
+/// faner beholder deres 640 × 190.
+let windowSize: CGSize = .init(
+    width: max(openNotchSize.width, jarvisOpenNotchSize.width),
+    height: max(openNotchSize.height, jarvisOpenNotchSize.height) + shadowPadding
+)
+
+/// Den åbne flade for en bestemt fane.
+func aabenNotchStoerrelse(for visning: NotchViews) -> CGSize {
+    switch visning {
+    case .jarvis, .jarvisAktier: return jarvisOpenNotchSize
+    case .home, .shelf: return openNotchSize
+    }
+}
 let cornerRadiusInsets: (opened: (top: CGFloat, bottom: CGFloat), closed: (top: CGFloat, bottom: CGFloat)) = (opened: (top: 19, bottom: 24), closed: (top: 6, bottom: 14))
 
 enum MusicPlayerImageSizes {

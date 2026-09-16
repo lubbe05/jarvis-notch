@@ -126,7 +126,14 @@ struct ContentView: View {
                     )
                 
                 mainLayout
-                    .frame(height: vm.notchState == .open ? vm.notchSize.height : nil)
+                    // JARVIS: den åbne flade spændes fast på vm.notchSize i BEGGE
+                    // retninger. Vinduet er nu så bredt som den bredeste fane kan
+                    // blive (se sizing/matters.swift), og uden bredden her ville
+                    // Hjem og Hylde flyde med ud. Lukket er den nil som før.
+                    .frame(
+                        width: vm.notchState == .open ? vm.notchSize.width : nil,
+                        height: vm.notchState == .open ? vm.notchSize.height : nil
+                    )
                     .conditionalModifier(true) { view in
                         let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8, blendDuration: 0)
                         let closeAnimation = Animation.spring(response: 0.45, dampingFraction: 1.0, blendDuration: 0)
@@ -219,9 +226,15 @@ struct ContentView: View {
             anchor: .top
         )
         .animation(.smooth, value: gestureProgress)
-        .background(dragDetector)
+        .background(alignment: .top) { dragDetector }
         .preferredColorScheme(.dark)
         .environmentObject(vm)
+        .onChange(of: coordinator.currentView) { _, _ in
+            // JARVIS: Jarvis-fanerne folder sig større ud end de øvrige faner.
+            withAnimation(animationSpring) {
+                vm.opdaterAabenStoerrelse()
+            }
+        }
         .onChange(of: vm.anyDropZoneTargeting) { _, isTargeted in
             anyDropDebounceTask?.cancel()
 
@@ -362,6 +375,8 @@ struct ContentView: View {
                         ShelfView()
                     case .jarvis:
                         JarvisView()
+                    case .jarvisAktier:
+                        JarvisAktierView()
                     }
                 }
                 .transition(
@@ -502,8 +517,12 @@ struct ContentView: View {
     @ViewBuilder
     var dragDetector: some View {
         if Defaults[.boringShelf] && vm.notchState == .closed {
+            // JARVIS: vinduet er blevet større, fordi Jarvis-fanerne folder sig
+            // videre ud. Den usynlige træk-flade holdes derfor på det mål den
+            // havde før (den gamle windowSize), så den ikke sluger flere klik
+            // under notchen end den plejede.
             Color.clear
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: openNotchSize.width, height: openNotchSize.height + shadowPadding)
                 .contentShape(Rectangle())
         .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $vm.dragDetectorTargeting) { providers in
             vm.dropEvent = true

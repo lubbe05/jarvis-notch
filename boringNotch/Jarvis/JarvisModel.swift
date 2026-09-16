@@ -149,6 +149,22 @@ final class JarvisState: ObservableObject {
         return nil
     }
 
+    /// Investor-skærmen. Kommer altid med i svaret (`links.investor`); vi bygger
+    /// den aldrig selv. Mangler `links` helt, står Aktier-fanen uden knap.
+    var investorLink: URL? {
+        if let tekst = svar?.links?.investor, let url = URL(string: tekst) { return url }
+        if let tekst = svar?.links?.app, let url = URL(string: tekst) { return url }
+        return nil
+    }
+
+    /// Sandt når huset slet ikke har noget at fortælle om depotet.
+    var harDepotNoget: Bool {
+        guard let depot = svar?.depot else { return false }
+        let harVaerdi = (depot.vaerdiOrd?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
+        let harAendring = (depot.dagsaendringOrd?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
+        return harVaerdi || harAendring || depot.naesteRegnskab != nil
+    }
+
     func modtog(_ nyt: JarvisSvar) {
         svar = nyt
         sidst = Date()
@@ -178,6 +194,9 @@ final class JarvisState: ObservableObject {
     ///
     /// Et bestemt kort kan kun åbnes i web-appen; appen har intet URL-skema,
     /// så vi løfter den blot frem.
+    ///
+    /// Er feltet «app-navn» i Indstillinger → Jarvis tomt, springer vi trin 1-2
+    /// over og åbner web-appen. Uden navnet ved vi ikke hvilken app der menes.
     func aabn(_ link: URL?) {
         guard Defaults[.jarvisAabnI] == .app else {
             aabnWeb(link)
@@ -188,7 +207,7 @@ final class JarvisState: ObservableObject {
             aabnWeb(link)
             return
         }
-        if loeftFremHvisKoerende(navn) { return }
+        if loeftFremHvisKoerende(navn, redning: link) { return }
         guard let appURL = findAppPaaDisken(navn) else {
             aabnWeb(link)
             return
@@ -207,7 +226,28 @@ final class JarvisState: ObservableObject {
     }
 
     /// Sandt hvis en kørende app matcher navnet (eller bundle-id'et) og blev løftet frem.
-    private func loeftFremHvisKoerende(_ navn: String) -> Bool {
+    ///
+    /// Lauritz 16/9: «hvis Jarvis-appen allerede kører, skal den smides foran
+    /// når jeg klikker på Kommandocenter-tingen i notchen». Det gjorde den ofte
+    /// ikke — og det er ikke opslaget der fejler. `activate(options:)` alene
+    /// bliver afvist af macOS 14+, når den app der beder om løftet (boringNotch)
+    /// ikke selv står forrest, og notchen står aldrig forrest: den er en
+    /// baggrundsagent uden fokus. Derfor tre trin:
+    ///
+    ///   1. `unhide()` — appen kan være skjult (⌘H) eller minimeret, og så er
+    ///      der ikke noget at aktivere.
+    ///   2. `NSApp.yieldActivation(to:)` + `activate(from:options:)` — vi giver
+    ///      vores EGEN aktivering væk først, og så accepterer systemet løftet.
+    ///      (Begge dele findes fra macOS 14, og projektets mindste system er
+    ///      netop macOS 14.0, så der er intet at falde tilbage på.)
+    ///   3. `NSWorkspace.openApplication` på appens egen bundle — en proces kan
+    ///      leve videre uden ét eneste vindue (det gør web-apps/PWA'er tit, når
+    ///      man har lukket vinduet med ⌘W), og så hjælper aktivering ikke. Et
+    ///      rigtigt «åbn» på SAMME bundle giver vinduet tilbage og starter ingen
+    ///      ny kopi.
+    ///
+    /// Lykkes hverken 2 eller 3, åbnes web-linket, så klikket aldrig dør i stilhed.
+    private func loeftFremHvisKoerende(_ navn: String, redning link: URL?) -> Bool {
         let soegt = navn.lowercased()
         let koerende = NSWorkspace.shared.runningApplications
         let fundet =
@@ -219,7 +259,24 @@ final class JarvisState: ObservableObject {
                     || (app.bundleIdentifier ?? "").lowercased().contains(soegt)
             }
         guard let app = fundet else { return false }
-        return app.activate(options: [.activateAllWindows])
+
+        // 1.
+        _ = app.unhide()
+
+        // 2.
+        NSApp.yieldActivation(to: app)
+        let loeftet = app.activate(from: NSRunningApplication.current, options: [.activateAllWindows])
+
+        // 3.
+        guard let bundle = app.bundleURL else { return loeftet }
+        let opsaetning = NSWorkspace.OpenConfiguration()
+        opsaetning.activates = true
+        NSWorkspace.shared.openApplication(at: bundle, configuration: opsaetning) { [weak self] koerer, fejl in
+            guard fejl != nil || koerer == nil else { return }
+            guard !loeftet else { return }
+            Task { @MainActor in self?.aabnWeb(link) }
+        }
+        return true
     }
 
     /// Leder efter appen på disken: først som bundle-id, så som navn i de to Programmer-mapper.

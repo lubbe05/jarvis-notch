@@ -12,31 +12,56 @@ ud, er punkt (d) nederst prompten der ordner det.
 
 ## Hvad der er bygget
 
-En ny fane «Jarvis» i den udfoldede notch, et lille mærke i den sammenfoldede,
-og én indstilling. Alt nyt ligger i sin egen mappe, så appen kan følge
-opstrøms-opdateringer:
+**To** faner i den udfoldede notch — «Jarvis» og «Aktier» — et lille mærke i den
+sammenfoldede, og én indstilling. Alt nyt ligger i sin egen mappe, så appen kan
+følge opstrøms-opdateringer:
 
 - `boringNotch/Jarvis/JarvisModel.swift` — svaret fra husets bro + tilstanden i appen
 - `boringNotch/Jarvis/JarvisPoller.swift` — henter `GET /notch` hvert 60. sekund
-- `boringNotch/Jarvis/JarvisView.swift` — fanen + mærket i den foldede notch
+- `boringNotch/Jarvis/JarvisView.swift` — fanen «Jarvis» (kommandocentret) + mærket i den foldede notch
+- `boringNotch/Jarvis/JarvisAktierView.swift` — fanen «Aktier»
+- `boringNotch/Jarvis/JarvisFaelles.swift` — det de to faner deler (skal, rækker, knap, farver)
 - `boringNotch/Jarvis/JarvisSettingsView.swift` — indstillingen «Jarvis»
 
 Rørt ved i forvejen eksisterende filer (små, mærkede med `// JARVIS`):
 `ContentView.swift`, `BoringHeader.swift`, `Tabs/TabSelectionView.swift`,
-`enums/generic.swift`, `models/Constants.swift`, `Settings/SettingsView.swift`,
-`boringNotchApp.swift`, `Localizable.xcstrings`, `boringNotch.xcodeproj`.
+`enums/generic.swift`, `models/Constants.swift`, `models/BoringViewModel.swift`,
+`sizing/matters.swift`, `Settings/SettingsView.swift`, `boringNotchApp.swift`,
+`Localizable.xcstrings`, `boringNotch.xcodeproj`.
 
 Notchen **læser kun**. Der sendes aldrig noget til huset, der er ingen nøgler i
 koden, og Tailscale-adressen står kun som forslag i det tomme tekstfelt.
+Der hentes **ét** kald i minuttet — begge faner læser samme svar, samme cache.
 
-Det du ser, udfoldet: hvor mange kort der venter (tal i mærket + husets egne
-ord), det seneste kort (titel · afsender) som du kan klikke på — det åbner
-web-appen i browseren, en linje om hvad huset sidst gjorde, depotets værdi og
-dagens ændring (grøn/rød/grå), næste regnskab («MU aflægger regnskab i
-morgen», med «(foreløbig)» hvis datoen er kildens gæt), laboratoriernes ene
-sætning, og en prik pr. agent (grøn arbejder, grå hviler, rød fejl — hold
-musen over prikken for navnet). Når broen ikke svarer: én dæmpet linje,
-«Jarvis er ikke at nå». Ingen popups.
+**Fanen «Jarvis» (hjerne-ikonet) — kommandocentret:** hvor mange kort der venter
+(badge + husets egne ord), det nyeste kort med hele titlen og afsenderen (klik
+åbner præcis det kort), nye beskeder fra huset, hvad huset laver lige nu + hvad
+det sidst leverede og hvornår, navn og farve pr. agent (grøn arbejder, grå
+hviler, rød fejl — hold musen over for hele sætningen), og knappen
+**«Åbn Kommandocenter»**.
+
+**Fanen «Aktier» (kurve-ikonet):** depotets værdi **stort** og i ord, dagens
+ændring i ord med pil og farve — **grøn op, rød ned, grå uændret** — næste
+regnskab («MU aflægger regnskab om 14 dage», med «foreløbig dato» hvis datoen er
+kildens gæt), laboratoriernes ene sætning, og knappen **«Åbn Investor»**.
+Kunne huset ikke måle bevægelsen, står der «bevægelsen kunne ikke måles» —
+aldrig et nul, som ville blive læst som en måling.
+
+Når broen ikke svarer: én dæmpet linje, «Jarvis er ikke at nå». Ingen popups.
+
+**Størrelsen.** De to Jarvis-faner folder notchen større ud end appens egne:
+**760 × 260** mod **640 × 190**. Grunden er at husets tal står i **ord**
+(«cirka 167 tusind kroner», «to tusind kroner op siden seneste lukkekurs»), og
+de sætninger blev klippet med «…» i den gamle bredde. Nu bryder de over 2-3
+linjer i stedet. Hjem og Hylde er uændrede. Styringen står ét sted:
+
+- `sizing/matters.swift` — `jarvisOpenNotchSize` og `aabenNotchStoerrelse(for:)`,
+  som giver den åbne flade pr. fane. `windowSize` er nu den STØRSTE af dem (plus
+  skyggen), fordi selve vinduet laves én gang og aldrig ændrer størrelse.
+- `models/BoringViewModel.swift` — `open()` tager størrelsen fra den valgte fane,
+  og `opdaterAabenStoerrelse()` retter den når du skifter fane mens notchen er åben.
+- `ContentView.swift` — den åbne flade spændes fast på `vm.notchSize` i **både**
+  bredde og højde, så Hjem og Hylde ikke flyder med ud i det bredere vindue.
 
 Sammenfoldet: et lille hjerne-ikon med antallet, men kun når der faktisk er
 kort der venter, og kun når der ikke spiller musik. Mærket har forrang for
@@ -431,11 +456,28 @@ http://<din-tailscale-adresse>:8000/notch
 (Der står et blegt forslag i samme form i det tomme felt — erstat pladsholderen
 med din egen adresse.) Tryk
 **Test**: der kommer «Jarvis svarede» eller «Jarvis er ikke at nå». Så snart
-adressen står der, dukker fanen «Jarvis» op i den udfoldede notch (hjerne-
-ikonet). Tømmer du feltet, forsvinder både fanen, mærket og al hentning.
+adressen står der, dukker **begge** faner op i den udfoldede notch — «Jarvis»
+(hjerne-ikonet) og «Aktier» (kurve-ikonet). Tømmer du feltet, forsvinder begge
+faner, mærket og al hentning.
 
-Vil du have Jarvis-fanen til at blive stående i stedet for at falde tilbage til
+Vil du have en Jarvis-fane til at blive stående i stedet for at falde tilbage til
 Home hver gang notchen lukker: **Settings → General** → «Remember last tab».
+
+**«Open in» og feltet «App name».** Under **Settings → Jarvis** står valget
+«Open in»: *Jarvis-appen på denne Mac* eller *web-appen*. Det gælder **begge**
+fanes knapper — «Åbn Kommandocenter» og «Åbn Investor» — og alle klikbare
+rækker. Vælger du appen, **skal feltet «App name» være udfyldt** med det navn
+appen har i **Programmer** (fx `Jarvis`), eller med dens bundle-id. Er feltet
+tomt, ved notchen ikke hvilken app der menes, og klikket går direkte i browseren.
+
+Kører appen allerede, bliver den løftet frem i stedet for at åbne en browserfane.
+Det sker i tre trin, fordi macOS 14 og nyere afviser et simpelt «aktivér» fra en
+app der ikke selv står forrest — og notchen står aldrig forrest: først `unhide()`
+(appen kan være skjult med ⌘H), så `yieldActivation` + `activate(from:)` (vi
+giver vores egen aktivering væk, og så accepterer systemet løftet), og til sidst
+et rigtigt «åbn» på samme bundle, fordi en app kan køre videre uden ét eneste
+vindue — det gør web-apps tit, når man har lukket vinduet med ⌘W. Virker intet af
+det, åbnes web-linket, så klikket aldrig dør i stilhed.
 
 Teksterne er danske. Appen har ikke dansk i forvejen, så de danske sætninger
 står i `Localizable.xcstrings` som både `da` og `en` — så ser du dansk uanset

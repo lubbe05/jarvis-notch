@@ -27,7 +27,9 @@ public enum NotchState {
 public enum NotchViews {
     case home
     case shelf
+    // JARVIS: to faner — kommandocentret og aktierne.
     case jarvis
+    case jarvisAktier
 }
 
 enum SettingsEnum {

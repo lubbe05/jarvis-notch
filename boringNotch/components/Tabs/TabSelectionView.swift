@@ -20,14 +20,18 @@ let tabs = [
     TabModel(label: "Shelf", icon: "tray.fill", view: .shelf)
 ]
 
-// Jarvis: egen fane, kun når adressen er skrevet i indstillingerne.
+// Jarvis: to egne faner, kun når adressen er skrevet i indstillingerne.
+// «Jarvis» er kommandocentret, «Aktier» er depotet. Begge folder notchen
+// større ud end husets egne faner (se `aabenNotchStoerrelse`).
 let jarvisTab = TabModel(label: "Jarvis", icon: "brain.head.profile", view: .jarvis)
+let jarvisAktierTab = TabModel(label: "Aktier", icon: "chart.line.uptrend.xyaxis", view: .jarvisAktier)
 
 /// Fanerne der faktisk skal vises lige nu.
 func synligeTabs() -> [TabModel] {
     var liste = tabs.filter { $0.view != .shelf || Defaults[.boringShelf] }
     if !Defaults[.jarvisAdresse].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
         liste.append(jarvisTab)
+        liste.append(jarvisAktierTab)
     }
     return liste
 }
