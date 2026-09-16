@@ -1,3 +1,27 @@
+> [!WARNING]
+> ## Privat fork — ikke det officielle projekt
+>
+> Dette er en **privat fork** af [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch),
+> lavet til ét enkelt hjem («Jarvis»). Den er **ikke** et officielt projekt, og den er
+> ikke lavet, godkendt eller understøttet af The Boring Team.
+>
+> - **Fejl i denne kopi hører til her** — åbn dem på
+>   [lubbe05/jarvis-notch/issues](https://github.com/lubbe05/jarvis-notch/issues),
+>   **aldrig** hos The Boring Team. De har intet med ændringerne her at gøre.
+> - **Al ære tilkommer dem.** Hele appen er deres arbejde; her er kun lagt én fane til.
+> - **Licensen er deres og uændret:** GPL-3.0, se [LICENSE](LICENSE). Ændringerne her
+>   udgives under samme licens.
+> - **Vil du bare have appen?** Hent den officielle hos dem:
+>   [theboring.name](https://theboring.name) ·
+>   [boring.notch/releases](https://github.com/TheBoredTeam/boring.notch/releases).
+>
+> *English: this is a private fork of [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch)
+> for one household — unofficial and unsupported; report issues here, not upstream; all credit and the
+> unchanged GPL-3.0 license belong to The Boring Team; get the official app from
+> [theboring.name](https://theboring.name).*
+
+---
+
 ## Denne kopi har Jarvis-fanen
 
 Det her er The Boring Teams `boring.notch` med én tilføjelse: en fane **«Jarvis»** i
