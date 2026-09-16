@@ -4,9 +4,11 @@ Lauritz: den her fil er til dig. Den siger hvad der er bygget, hvad du skal
 gøre på Mac'en, og hvad du skal skrive hvis det ikke vil kompilere.
 
 **Ærligt først:** koden er skrevet i huset på Linux, hvor der hverken er Mac
-eller Xcode. **Den er aldrig kompileret.** Alt er skrevet konservativt og i
-appens egen stil, men regn med at der kan være et par oversætterfejl der skal
-rettes på Mac'en. Punkt (d) nederst er prompten der ordner det.
+eller Xcode. Den er nu **kompileret hos GitHub** (16/9 08:59 UTC, sha 22f56de,
+Xcode 16.4, Release, arm64): **BUILD SUCCEEDED**, ingen fejl og ikke én
+advarsel fra Jarvis-filerne. Men den har **aldrig kørt på en rigtig Mac** —
+at den oversætter er ikke det samme som at fanen står pænt. Ser noget skævt
+ud, er punkt (d) nederst prompten der ordner det.
 
 ## Hvad der er bygget
 
@@ -115,6 +117,9 @@ Vil du have nyt fra opstrøms, tager vi det i huset og bygger igen.
 
 Hver gang huset skubber til grenen `jarvis`, starter bygget af sig selv
 (og du kan selv starte et: Actions → «Jarvis: byg appen» → **Run workflow**).
+Rettelser der kun rører tekst og opskrifter skubbes med `[skip ci]` i
+commit-beskeden, så de ikke koster en hel Mac-byggetur — derfor kan den
+nyeste commit godt være uden kørsel; tag så den nyeste kørsel der er.
 Så henter du bare den nyeste artifact og gentager punkt 1-3 og 6.
 
 ### Hvad bygget koster
@@ -151,8 +156,11 @@ GitHubs eget `GITHUB_TOKEN`. Der er ingen hemmeligheder i den.
 
 ## (a) Forudsætninger
 
-- **macOS 15.6 eller nyere** og **Xcode 26 eller nyere** for at bygge
-  (selve appen kører fra macOS 14 Sonoma).
+- Kun hvis du vil bygge selv: **Xcode**. Opstrøms README siger Xcode 26 eller
+  nyere, men vores byg hos GitHub klarer den med **Xcode 16.4**, så en ældre
+  Xcode er nok. Selve appen kører fra **macOS 14 Sonoma**.
+- Vil du ikke bygge selv, så spring hele dette afsnit over — se «Installér som
+  app (uden Xcode)» ovenfor.
 - Tailscale tændt på Mac'en. Prøv først i Terminal:
 
   ```bash

@@ -109,6 +109,7 @@ jobs:
         if: always()
         run: |
           set -uo pipefail
+          exec > >(tee "$RUNNER_TEMP/pak.log") 2>&1
           APP="$RUNNER_TEMP/dd/Build/Products/Release/${PROJECT_NAME}.app"
           NAVN="${PROJECT_NAME}-jarvis-${{ steps.sha.outputs.kort }}"
           if [ ! -d "$APP" ]; then
@@ -195,6 +196,12 @@ jobs:
             echo
             echo '```'
             grep -E "(error|warning):" "$LOG" | head -n 200 || true
+            echo '```'
+            echo
+            echo '## Pakningen (zip og dmg)'
+            echo
+            echo '```'
+            if [ -f "$RUNNER_TEMP/pak.log" ]; then tail -n 40 "$RUNNER_TEMP/pak.log"; else echo "(pakningen nåede ikke at køre)"; fi
             echo '```'
             echo
             echo '## Slutningen af loggen (sidste 80 linjer)'
