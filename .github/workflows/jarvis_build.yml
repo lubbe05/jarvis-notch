@@ -63,7 +63,7 @@ jobs:
           sudo xcode-select -s "$XCODE_PATH"
           xcodebuild -version
 
-      - name: Byg (ad hoc-signeret, Release)
+      - name: Byg (Release; signaturen sættes i to trin længere ned)
         id: byg
         continue-on-error: true
         run: |
@@ -124,6 +124,97 @@ jobs:
           tail -n 60 "$LOG"
           exit $STATUS
 
+      # HVORFOR ET FAST CERTIFIKAT (Lauritz 16/9 aften). Ad hoc-signering giver
+      # appen et NYT mærke ved hvert byg: der er ingen signerende identitet, så
+      # appens «designated requirement» er dens egen cdhash, og den ændrer sig i
+      # det sekund én byte i bundtet gør. macOS' TCC-database husker
+      # Accessibility (og skærmoptagelse, og resten) på præcis det mærke — så
+      # HVER opdatering var en fremmed app, og han skulle give tilladelsen igen.
+      #
+      # Kuren er ét certifikat der ikke skifter: et selvsigneret
+      # codesigning-certifikat, «Jarvis Notch», lavet i huset med openssl og
+      # gyldigt til 2036. Så bliver kravet «signeret af Jarvis Notch» i stedet
+      # for «præcis disse bytes», og tilladelsen holder på tværs af byg.
+      #
+      # DET ER IKKE APPLE-SIGNERING. Certifikatet har ingen Apple-rod, så
+      # Gatekeeper er lige så utilfreds som før (samme xattr-trin første gang),
+      # og der er intet team-id. Det er også meningen: uden team-id går
+      # library validation ikke i gang, og MediaRemoteAdapter kan stadig
+      # indlæses (se kommentaren ved `signer()`).
+      #
+      # NØGLEN LIGGER IKKE HER. Den bor i ~/.jarvis/notch/ på husets maskine
+      # (mode 600) og kommer ind som to secrets. MANGLER DE, falder bygget
+      # tilbage til ad hoc — så en fork uden secrets stadig bygger, og
+      # Accessibility-gevinsten er det eneste der går tabt.
+      - name: Importér husets certifikat (ellers ad hoc)
+        id: certifikat
+        if: always()
+        # Hemmelighederne går gennem MILJØET og ikke ind i kommandolinjen: en
+        # kommandolinje kan havne i en fejl-trace, og `ps` kan ses af andre
+        # processer på maskinen.
+        env:
+          CERT_P12_BASE64: ${{ secrets.JARVIS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.JARVIS_CERT_PASSWORD }}
+        run: |
+          set -uo pipefail
+          IDENT="-"
+          if [ -z "${CERT_P12_BASE64:-}" ] || [ -z "${CERT_PASSWORD:-}" ]; then
+            echo "Ingen JARVIS_CERT_P12/JARVIS_CERT_PASSWORD — der signeres ad hoc som før."
+            echo "SIGN_IDENT=$IDENT" >> "$GITHUB_ENV"
+            echo "SIGN_NAVN=ad hoc" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          P12="$RUNNER_TEMP/jarvis-notch.p12"
+          KEYCHAIN="$RUNNER_TEMP/jarvis-notch.keychain-db"
+          # Kodeordet til selve nøgleringen er ikke en hemmelighed: den findes
+          # kun i dette job, på en maskine der slettes bagefter.
+          KPW="$(uuidgen)"
+
+          printf '%s' "$CERT_P12_BASE64" | base64 --decode > "$P12"
+          if [ ! -s "$P12" ]; then
+            echo "JARVIS_CERT_P12 kunne ikke afkodes (tom fil) — falder tilbage til ad hoc."
+            echo "SIGN_IDENT=-" >> "$GITHUB_ENV"
+            echo "SIGN_NAVN=ad hoc (certifikatet kunne ikke afkodes)" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          security create-keychain -p "$KPW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KPW" "$KEYCHAIN"
+          # `-T /usr/bin/codesign` + `set-key-partition-list` er DET der gør at
+          # codesign må bruge den private nøgle uden at spørge om kodeord. Uden
+          # dem fejler signeringen med «errSecInternalComponent» på en maskine
+          # hvor ingen kan svare på en dialog.
+          if ! security import "$P12" -k "$KEYCHAIN" \
+                 -P "$CERT_PASSWORD" \
+                 -f pkcs12 -A -T /usr/bin/codesign -T /usr/bin/security; then
+            echo "Certifikatet kunne ikke importeres — falder tilbage til ad hoc."
+            security delete-keychain "$KEYCHAIN" || true
+            echo "SIGN_IDENT=-" >> "$GITHUB_ENV"
+            echo "SIGN_NAVN=ad hoc (certifikatet kunne ikke importeres)" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+                  -s -k "$KPW" "$KEYCHAIN" > /dev/null 2>&1 || true
+          # Nøgleringen skal stå FØRST i søgelisten, ellers finder codesign den ikke.
+          security list-keychains -d user -s "$KEYCHAIN" \
+                  "$HOME/Library/Keychains/login.keychain-db"
+          security default-keychain -s "$KEYCHAIN"
+
+          echo "== identiteter i nøgleringen =="
+          security find-identity -v -p codesigning "$KEYCHAIN" || true
+          if security find-identity -v -p codesigning "$KEYCHAIN" | grep -q "Jarvis Notch"; then
+            IDENT="Jarvis Notch"
+            echo "SIGN_NAVN=certifikatet «Jarvis Notch»" >> "$GITHUB_ENV"
+          else
+            echo "«Jarvis Notch» står ikke som en codesigning-identitet — ad hoc."
+            echo "SIGN_NAVN=ad hoc (identiteten blev ikke fundet)" >> "$GITHUB_ENV"
+          fi
+          echo "SIGN_IDENT=$IDENT" >> "$GITHUB_ENV"
+          echo "SIGN_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+          echo "Der signeres med: $IDENT"
+
       # Kuren på Lauritz' nedbrud 16/9: dyld nægtede at indlæse
       # MediaRemoteAdapter.framework, fordi appen var ad hoc-signeret (intet team-id),
       # mens det indlejrede framework stadig bar upstreams Developer ID. Med hardened
@@ -131,12 +222,18 @@ jobs:
       # tæller kun som ens, hvis begge er ad hoc. Derfor signeres hele indmaden om her —
       # indefra og ud — i stedet for at slække på library validation.
       # (Omsigneringen er lovlig: MediaRemoteAdapter er BSD-licenseret, se THIRD_PARTY_LICENSES.)
-      - name: Signér alle indlejrede dele ad hoc
+      - name: Signér alle indlejrede dele med husets identitet
         id: signering
         if: always()
         continue-on-error: true
         run: |
           set -uo pipefail
+
+          # «-» = ad hoc, «Jarvis Notch» = husets certifikat. Sat i trinnet
+          # ovenfor, som falder tilbage til «-» hvis secrets mangler.
+          IDENT="${SIGN_IDENT:--}"
+          echo "Identitet: $IDENT (${SIGN_NAVN:-ukendt})"
+          echo
 
           APP="$RUNNER_TEMP/dd/Build/Products/Release/${PROJECT_NAME}.app"
           LOG="$RUNNER_TEMP/signering.log"
@@ -162,12 +259,19 @@ jobs:
             # `codesign --force --deep --sign -` — dvs. uden runtime-flaget — og
             # den virkede. Så bygget signerer præcis sådan. Sparkle er ligeglad:
             # EdDSA-nøglen bærer opdateringen, ikke runtime-flaget.
+            #
+            # DET GÆLDER OGSÅ MED CERTIFIKATET (16/9 aften). «Jarvis Notch» har
+            # ingen Apple-rod og derfor intet team-id, så library validation
+            # ville stadig afvise MediaRemoteAdapter hvis runtime-flaget var
+            # tændt. Certifikatet løser et ANDET problem — at TCC glemte
+            # Accessibility ved hver opdatering — og det kræver kun at
+            # identiteten er den samme fra byg til byg.
             signer() {
               STI="$1"
               TAELLER=$((TAELLER + 1))
               ENT="$ENT_DIR/$TAELLER.plist"
               RET="ingen rettigheder"
-              set -- --force --sign - --timestamp=none
+              set -- --force --sign "$IDENT" --timestamp=none
               if codesign -d --entitlements :- "$STI" > "$ENT" 2>/dev/null \
                  && [ -s "$ENT" ] && plutil -lint "$ENT" > /dev/null 2>&1; then
                 set -- "$@" --entitlements "$ENT"
@@ -228,10 +332,10 @@ jobs:
             if [ -f "$APP_ENT" ]; then
               echo "   --- appens rettigheder ---"
               sed 's/^/       /' "$APP_ENT"
-              codesign --force --sign - --timestamp=none \
+              codesign --force --sign "$IDENT" --timestamp=none \
                        --entitlements "$APP_ENT" "$APP" 2>&1 || FEJL=$((FEJL + 1))
             else
-              codesign --force --sign - --timestamp=none "$APP" 2>&1 || FEJL=$((FEJL + 1))
+              codesign --force --sign "$IDENT" --timestamp=none "$APP" 2>&1 || FEJL=$((FEJL + 1))
             fi
             echo "   appen er signeret ($FEJL signeringsfejl indtil nu)"
 
@@ -245,6 +349,10 @@ jobs:
             echo "   resultat: $VERIFIKATION"
 
             echo
+            # TEAM-ID SKAL STADIG STÅ «not set» — også med certifikatet.
+            # Team-id'et læses af certifikatets OU-felt, og «Jarvis Notch» har
+            # ikke et: det er netop dét der holder library validation slukket,
+            # så MediaRemoteAdapter kan indlæses (se `signer()`).
             echo "== 5. team-id på hver eneste del (skal stå «not set») =="
             tjek_team() {
               T_STI="$1"
@@ -279,6 +387,8 @@ jobs:
               echo "--- $(kort "$N")"
               if [ -e "$N" ]; then
                 codesign -dvv "$N" 2>&1 | grep -E '^(Identifier|Format|CodeDirectory|Signature|TeamIdentifier|Authority)' || true
+                echo "    --- kravet appen skal opfylde for at TCC kender den igen ---"
+                codesign -d -r- "$N" 2>&1 | grep -E '^designated' | sed 's/^/    /' || true
               else
                 echo "    findes ikke i dette byg"
               fi
@@ -296,7 +406,16 @@ jobs:
               echo "ADVARSEL: team-id'erne er i orden, men --verify --deep --strict fejlede."
               return 2
             fi
-            echo "SIGNERINGEN ER I ORDEN: alt er ad hoc, ingen indlejret del har et team-id."
+            if [ "$IDENT" = "-" ]; then
+              echo "SIGNERINGEN ER I ORDEN: alt er ad hoc, ingen indlejret del har et team-id."
+              echo "BEMÆRK: uden certifikat skifter appens mærke ved hvert byg, og macOS"
+              echo "        beder om Accessibility igen. Sæt JARVIS_CERT_P12 og"
+              echo "        JARVIS_CERT_PASSWORD — se JARVIS-OPSKRIFT.md."
+            else
+              echo "SIGNERINGEN ER I ORDEN: alt er signeret med «$IDENT», og ingen"
+              echo "indlejret del har et team-id. Appens krav er nu identiteten og ikke"
+              echo "dens bytes, så TCC husker Accessibility på tværs af opdateringer."
+            fi
             return 0
           }
 
@@ -441,7 +560,9 @@ jobs:
             echo "$DMG_LINJE"
             echo "- **${NAVN}.zip** — pak ud og træk **boringNotch.app** til **/Programmer**. Virker altid."
             echo
-            echo "**Første gang advarer macOS**, fordi appen er ad hoc-signeret (ingen Apple-udviklerkonto)."
+            echo "- signering: ${SIGN_NAVN:-ad hoc}"
+            echo
+            echo "**Første gang advarer macOS**, fordi appen ikke er signeret med en Apple-udviklerkonto."
             echo "Højreklik på appen → **Åbn** → **Åbn**, eller i Terminal:"
             echo
             echo '```bash'
@@ -493,7 +614,7 @@ jobs:
             ARTIFACT="ingen — der kom ingen .app ud af bygget"
           fi
           case "${SIGN_STATUS:-}" in
-            0)        SIGNERING="OK — alt ad hoc, ingen indlejret del har et team-id" ;;
+            0)        SIGNERING="OK — alt signeret med ${SIGN_NAVN:-ad hoc}, ingen indlejret del har et team-id" ;;
             1)        SIGNERING="FEJL — en indlejret del er ikke ad hoc-signeret (appen ville ikke starte); INTET udgivet" ;;
             2)        SIGNERING="ADVARSEL — team-id'erne er rene, men --verify --deep --strict fejlede; appen er udgivet, bygget står rødt" ;;
             sprunget) SIGNERING="sprunget over — der kom ingen app ud af bygget" ;;
@@ -567,6 +688,21 @@ jobs:
           git commit -q -m "Byggelog ${KORT}: ${STATUS}" || echo "(intet nyt at skrive)"
           git push -q origin build-logs
           echo "Byggeloggen står nu på grenen build-logs."
+
+      # Nøgleringen med den private nøgle må ikke blive liggende — maskinen
+      # slettes af GitHub bagefter, men et job der genbruges, skal ikke kunne
+      # arve husets signeringsnøgle.
+      - name: Ryd nøgleringen
+        if: always()
+        run: |
+          set -uo pipefail
+          if [ -n "${SIGN_KEYCHAIN:-}" ]; then
+            security list-keychains -d user -s "$HOME/Library/Keychains/login.keychain-db" || true
+            security default-keychain -s "$HOME/Library/Keychains/login.keychain-db" || true
+            security delete-keychain "$SIGN_KEYCHAIN" || true
+            echo "Nøgleringen er slettet."
+          fi
+          rm -f "$RUNNER_TEMP/jarvis-notch.p12"
 
       # Til allersidst, så byggeloggen ovenfor altid når at blive skrevet først:
       # en app med en fremmed-signeret indmad er et RØDT byg, ikke et grønt.

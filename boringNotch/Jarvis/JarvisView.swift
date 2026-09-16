@@ -14,6 +14,13 @@
 //  Derfor bryder hver sætning over 2-3 linjer, og fanen folder notchen
 //  større ud end de øvrige faner (se `jarvisOpenNotchSize`).
 //
+//  16/9 AFTEN blev fanen et rigtigt kommandocenter: de kort der venter, står
+//  som en liste med «Godkend» og «Afvis», og nederst kan han skrive en opgave.
+//  Notchen afgør stadig intet selv — hvert tryk går gennem husets EGNE døre,
+//  se `JarvisSkriver`. Er der ingen `skriv`-blok i husets svar, er der hverken
+//  knapper eller tekstfelt: så har huset ikke sagt hvem der trykker, og en
+//  knap der ikke kan virke, hører ikke på en skærm.
+//
 
 import AppKit
 import Defaults
@@ -24,6 +31,8 @@ import SwiftUI
 struct JarvisView: View {
     @EnvironmentObject var vm: BoringViewModel
     @ObservedObject private var jarvis = JarvisState.shared
+    /// Sandt mens en opgave er på vej i køen. Kun til Send-knappen.
+    @State private var sender: Bool = false
 
     var body: some View {
         JarvisRamme {
@@ -32,46 +41,202 @@ struct JarvisView: View {
     }
 
     private var indhold: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            venterRaekke
-            if let seneste = jarvis.svar?.venter?.seneste, jarvisOrd(seneste.titel) != nil {
-                senesteKort(seneste)
-            }
-            if let ord = jarvisOrd(jarvis.svar?.breve?.ord), jarvis.breveAntal > 0 {
-                JarvisRaekke(ikon: "envelope.fill", tekst: ord, farve: .white.opacity(0.9), linjer: 2)
-            }
-            husetBlok
+        VStack(alignment: .leading, spacing: 8) {
+            topLinje
+            venteListe
             Spacer(minLength: 0)
-            agentRaekke
+            skrivLinje
             bundLinje
         }
         .padding(.horizontal, 6)
         .padding(.top, 2)
     }
 
-    // MARK: Kort der venter
+    // MARK: Øverst: hvor mange venter, og hvad huset laver
 
-    private var venterRaekke: some View {
-        HStack(spacing: 9) {
-            ZStack {
-                Capsule()
-                    .fill(jarvis.venterAntal > 0 ? Color.effectiveAccent : Color.gray.opacity(0.25))
-                    .frame(width: jarvis.venterAntal > 9 ? 32 : 26, height: 24)
-                Text(verbatim: "\(jarvis.venterAntal)")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+    private var topLinje: some View {
+        HStack(alignment: .top, spacing: 12) {
+            HStack(spacing: 8) {
+                ZStack {
+                    Capsule()
+                        .fill(jarvis.venterAntal > 0 ? Color.effectiveAccent : Color.gray.opacity(0.25))
+                        .frame(width: jarvis.venterAntal > 9 ? 30 : 24, height: 22)
+                    Text(verbatim: "\(jarvis.venterAntal)")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(jarvis.venterAntal > 0 ? .white : .gray)
+                }
+                Text(jarvisOrd(jarvis.svar?.venter?.ord)
+                     ?? NSLocalizedString("Waiting for you", comment: "Jarvis: cards waiting"))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(jarvis.venterAntal > 0 ? .white : .gray)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Text(jarvisOrd(jarvis.svar?.venter?.ord) ?? NSLocalizedString("Waiting for you", comment: "Jarvis: cards waiting"))
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(jarvis.venterAntal > 0 ? .white : .gray)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
+            Spacer(minLength: 4)
+            husetBlok
+                .frame(width: 320, alignment: .topLeading)
         }
     }
 
-    /// Det nyeste kort: hele titlen, og hvem der sendte det. Klikket åbner
-    /// præcis det kort — notchen dømmer aldrig selv.
+    /// Hvad huset laver lige nu, hvad det sidst leverede, og brevene.
+    /// Står til højre, fordi midten nu tilhører kortene han skal svare på.
+    @ViewBuilder
+    private var husetBlok: some View {
+        if let huset = jarvis.svar?.huset {
+            VStack(alignment: .leading, spacing: 2) {
+                if let ord = jarvisOrd(huset.ord) {
+                    JarvisRaekke(
+                        ikon: "house.fill",
+                        tekst: ord,
+                        farve: .white.opacity(0.9),
+                        ikonfarve: jarvisTilstandsfarve(huset.tilstand),
+                        stoerrelse: 12,
+                        linjer: 2
+                    )
+                }
+                if let seneste = jarvisOrd(huset.seneste) {
+                    let linje = jarvisOrd(huset.hvornaar).map { "\(seneste) · \($0)" } ?? seneste
+                    Text(linje)
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.gray)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, 19)
+                }
+                if let ord = jarvisOrd(jarvis.svar?.breve?.ord), jarvis.breveAntal > 0 {
+                    JarvisRaekke(ikon: "envelope.fill", tekst: ord,
+                                 farve: Color.gray, stoerrelse: 10, linjer: 1)
+                }
+            }
+        }
+    }
+
+    // MARK: Kortene han kan svare på
+
+    @ViewBuilder
+    private var venteListe: some View {
+        let liste = jarvis.venterListe
+        if !liste.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(liste, id: \.raekkeId) { kort in
+                    kortRaekke(kort)
+                }
+            }
+        } else if jarvis.venterAntal > 0,
+                  let seneste = jarvis.svar?.venter?.seneste,
+                  jarvisOrd(seneste.titel) != nil {
+            // Der venter kort, men husets svar bar ingen liste (en ældre bro).
+            // Så bliver det ene gamle kort stående — uden knapper, for vi ved
+            // ikke om det må dømmes.
+            senesteKort(seneste)
+        } else {
+            // Intet venter. Så er agenterne det der er værd at se.
+            agentRaekke
+        }
+    }
+
+    /// Én linje: slags · titel · afsender, og til højre Godkend/Afvis.
+    ///
+    /// Titlen er klikbar og åbner PRÆCIS det kort — så han kan læse resten før
+    /// han dømmer, hvis linjen ikke er nok.
+    private func kortRaekke(_ kort: JarvisVenterKort) -> some View {
+        let id = kort.id ?? ""
+        return HStack(alignment: .center, spacing: 7) {
+            if let slags = jarvisOrd(kort.slags) {
+                Text(slags)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(Color.gray)
+                    .lineLimit(1)
+                    .padding(.vertical, 2)
+                    .padding(.horizontal, 6)
+                    .background(Capsule().fill(Color.gray.opacity(0.18)))
+            }
+            JarvisLinkRaekke(url: kortLink(id)) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(jarvisOrd(kort.titel) ?? "")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let fra = jarvisOrd(kort.fra) {
+                        Text(fra)
+                            .font(.system(size: 10))
+                            .foregroundStyle(Color.gray)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            Spacer(minLength: 4)
+            domKnapper(id: id, kanGodkendes: kort.kanGodkendes == true)
+        }
+    }
+
+    /// Godkend/Afvis — eller det ord der står i stedet for dem.
+    ///
+    /// FIRE TILSTANDE, og hver af dem siger sandheden:
+    ///   * svaret er undervejs         -> en snurre, ingen knapper (intet dobbelttryk)
+    ///   * han HAR svaret              -> «Godkendt»/«Afvist», til kortet er væk
+    ///   * huset siger `kan_godkendes: false` -> ingen knapper. Et fejl-kort vil
+    ///     lægges i køen igen, ikke godkendes, og den knap hører i
+    ///     Kommandocentret hvor opgaveteksten står ved siden af.
+    ///   * huset har ikke sagt hvem der trykker -> ingen knapper. Navnet er hele
+    ///     forslags-trinnet; kunne vi fylde det ud selv, var trinnet pynt.
+    @ViewBuilder
+    private func domKnapper(id: String, kanGodkendes: Bool) -> some View {
+        if let ord = jarvis.besvaret[id] {
+            Text(ord)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Color.gray)
+                .lineLimit(1)
+        } else if jarvis.besvarer.contains(id) {
+            ProgressView()
+                .controlSize(.small)
+                .scaleEffect(0.7)
+        } else if kanGodkendes && jarvis.kanDoemme && !id.isEmpty {
+            HStack(spacing: 5) {
+                JarvisLilleKnap(tekst: "Approve", farve: .green) { doem(id, true) }
+                JarvisLilleKnap(tekst: "Reject", farve: .red) { doem(id, false) }
+            }
+        }
+    }
+
+    /// Det dybe link til ét kort. Bygges af husets egen adresse, aldrig af os.
+    private func kortLink(_ id: String) -> URL? {
+        guard !id.isEmpty,
+              let kommando = jarvis.svar?.links?.kommandocenter,
+              let url = URL(string: "\(kommando)?kort=\(id)")
+        else { return jarvis.kommandocenterLink }
+        return url
+    }
+
+    /// Trykket. Kortet forsvinder IKKE af sig selv — det gør det ved næste
+    /// poll, når huset siger det er væk. Indtil da står ordet «Godkendt», så
+    /// han kan se at trykket kom igennem uden at listen hopper under hånden.
+    private func doem(_ id: String, _ godkend: Bool) {
+        guard !id.isEmpty, !jarvis.besvarer.contains(id) else { return }
+        let navn = jarvis.skriverNavn
+        guard !navn.isEmpty else { return }
+        jarvis.besvarer.insert(id)
+        Task { @MainActor in
+            let svar = await JarvisSkriver.shared.doem(kortId: id, godkend: godkend, af: navn)
+            jarvis.besvarer.remove(id)
+            switch svar {
+            case .ok(let ord):
+                jarvis.besvaret[id] = ord
+                jarvis.visKvittering(ord)
+            case .nej(let hvorfor):
+                jarvis.visKvittering(hvorfor)
+            case .ikkeKontakt:
+                jarvis.visKvittering(
+                    NSLocalizedString("Jarvis can't be reached",
+                                      comment: "Quiet error line in the Jarvis view"))
+            }
+        }
+    }
+
+    /// Det gamle ene kort — står kun hvis husets svar ikke bærer en liste.
     private func senesteKort(_ seneste: JarvisSeneste) -> some View {
         JarvisLinkRaekke(url: URL(string: seneste.link ?? "") ?? jarvis.kommandocenterLink) {
             HStack(alignment: .top, spacing: 7) {
@@ -99,32 +264,61 @@ struct JarvisView: View {
         }
     }
 
-    // MARK: Hvad huset laver lige nu
+    // MARK: Sig det til Jarvis
 
+    /// Tekstfeltet. Går gennem `POST /tasks` — samme dør som appens Kø-skærm,
+    /// med de samme værn (pengehandels-vagten, dublet-vagten, kanoniseringen).
+    /// Feltet findes kun når huset har sagt HVILKEN kø opgaven hører i: et tomt
+    /// mål er husets fælles pulje, altså en anden kø end den han taler til.
     @ViewBuilder
-    private var husetBlok: some View {
-        if let huset = jarvis.svar?.huset {
-            VStack(alignment: .leading, spacing: 3) {
-                if let ord = jarvisOrd(huset.ord) {
-                    JarvisRaekke(
-                        ikon: "house.fill",
-                        tekst: ord,
-                        farve: .white.opacity(0.9),
-                        ikonfarve: jarvisTilstandsfarve(huset.tilstand),
-                        stoerrelse: 13,
-                        linjer: 2
+    private var skrivLinje: some View {
+        if jarvis.kanSkriveOpgave {
+            HStack(spacing: 8) {
+                TextField("", text: $jarvis.udkast, prompt: Text("Tell Jarvis…"))
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 9)
+                    .background(
+                        RoundedRectangle(cornerRadius: 7)
+                            .fill(Color.gray.opacity(0.16))
                     )
+                    .onSubmit { send() }
+
+                if sender {
+                    ProgressView()
+                        .controlSize(.small)
+                        .scaleEffect(0.7)
+                } else {
+                    JarvisLilleKnap(tekst: "Send", farve: Color.effectiveAccent) { send() }
+                        .disabled(jarvis.udkast.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-                if let seneste = jarvisOrd(huset.seneste) {
-                    let linje = jarvisOrd(huset.hvornaar).map { "\(seneste) · \($0)" } ?? seneste
-                    Text(linje)
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.gray)
-                        .lineLimit(3)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.leading, 19)
-                }
+            }
+        }
+    }
+
+    private func send() {
+        let tekst = jarvis.udkast.trimmingCharacters(in: .whitespacesAndNewlines)
+        let maal = jarvis.opgaveMaal
+        guard !tekst.isEmpty, !maal.isEmpty, !sender else { return }
+        sender = true
+        Task { @MainActor in
+            let svar = await JarvisSkriver.shared.laegIKoeen(tekst: tekst, maal: maal)
+            sender = false
+            switch svar {
+            case .ok(let ord):
+                // Feltet ryddes FØRST når huset har taget imod. Sagde det nej,
+                // står teksten der endnu, så han ikke skal skrive den igen.
+                jarvis.udkast = ""
+                jarvis.visKvittering(ord)
+            case .nej(let hvorfor):
+                jarvis.visKvittering(hvorfor)
+            case .ikkeKontakt:
+                jarvis.visKvittering(
+                    NSLocalizedString("Jarvis can't be reached",
+                                      comment: "Quiet error line in the Jarvis view"))
             }
         }
     }
@@ -132,6 +326,7 @@ struct JarvisView: View {
     // MARK: Agenterne
 
     /// Navn + prik, hvis der er plads til navnene; ellers bare prikkerne.
+    /// Står kun når der ikke venter kort — så har listen pladsen.
     @ViewBuilder
     private var agentRaekke: some View {
         if let agenter = jarvis.svar?.agenter, !agenter.isEmpty {
@@ -151,22 +346,37 @@ struct JarvisView: View {
                     }
                     Spacer(minLength: 0)
                 }
-                HStack(spacing: 7) {
-                    ForEach(Array(agenter.enumerated()), id: \.offset) { _, agent in
-                        Circle()
-                            .fill(jarvisAgentfarve(agent.tilstand))
-                            .frame(width: 7, height: 7)
-                            .help(agentHjaelp(agent))
-                    }
-                    Spacer(minLength: 0)
-                }
+                agentPrikker
             }
             .padding(.leading, 2)
         }
     }
 
+    @ViewBuilder
+    private var agentPrikker: some View {
+        if let agenter = jarvis.svar?.agenter, !agenter.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(Array(agenter.enumerated()), id: \.offset) { _, agent in
+                    Circle()
+                        .fill(jarvisAgentfarve(agent.tilstand))
+                        .frame(width: 7, height: 7)
+                        .help(agentHjaelp(agent))
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func agentHjaelp(_ agent: JarvisAgent) -> String {
+        let navn = jarvisOrd(agent.navn) ?? "?"
+        if let ord = jarvisOrd(agent.ord) { return "\(navn): \(ord)" }
+        if let tilstand = jarvisOrd(agent.tilstand) { return "\(navn): \(tilstand)" }
+        return navn
+    }
+
     // MARK: Bunden
 
+    /// Knappen, den ene kvitteringslinje, og prikkerne når listen tog pladsen.
     private var bundLinje: some View {
         HStack(alignment: .center, spacing: 10) {
             JarvisKnap(
@@ -174,7 +384,18 @@ struct JarvisView: View {
                 ikon: "arrow.up.forward.app",
                 url: jarvis.kommandocenterLink
             )
-            if let mangler = jarvisOrd(jarvis.svar?.mangler?.first) {
+            if let ord = jarvisOrd(jarvis.kvittering) {
+                HStack(alignment: .top, spacing: 4) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 10))
+                        .padding(.top, 2)
+                    Text(ord)
+                        .font(.system(size: 11))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .foregroundStyle(Color.effectiveAccent)
+            } else if let mangler = jarvisOrd(jarvis.svar?.mangler?.first) {
                 HStack(alignment: .top, spacing: 4) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 9))
@@ -187,14 +408,11 @@ struct JarvisView: View {
                 .foregroundStyle(Color.gray.opacity(0.75))
             }
             Spacer(minLength: 0)
+            if !jarvis.venterListe.isEmpty {
+                agentPrikker
+                    .fixedSize()
+            }
         }
-    }
-
-    private func agentHjaelp(_ agent: JarvisAgent) -> String {
-        let navn = jarvisOrd(agent.navn) ?? "?"
-        if let ord = jarvisOrd(agent.ord) { return "\(navn): \(ord)" }
-        if let tilstand = jarvisOrd(agent.tilstand) { return "\(navn): \(tilstand)" }
-        return navn
     }
 }
 
@@ -222,8 +440,8 @@ struct JarvisView: View {
 /// Kuren: ingen SF-symbol. En cirkel med tallet inden i, nøjagtig `h - 12` i diameter,
 /// så mærket har samme fodaftryk som husets egne elementer og aldrig kan flyde over.
 ///
-/// Mærket er UÆNDRET af de to faner: den foldede notch viser stadig kun
-/// antallet af kort der venter.
+/// Mærket er UÆNDRET af de to faner og af knapperne: den foldede notch viser
+/// stadig kun antallet af kort der venter.
 struct JarvisLukketMaerke: View {
     @EnvironmentObject var vm: BoringViewModel
     @ObservedObject private var jarvis = JarvisState.shared

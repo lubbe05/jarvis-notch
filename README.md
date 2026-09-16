@@ -77,19 +77,23 @@ maskine — den står ikke i koden, og appen sender aldrig noget den anden vej.
 *Lauritz: din adresse står i kortet i Kommandocentret.*
 
 Så har du **to nye faner** i den udfoldede notch. Begge folder notchen lidt
-større ud end appens egne faner (760 × 260 mod 640 × 190), så husets sætninger —
-tallene står i ord, ikke i cifre — kan bryde over flere linjer i stedet for at
-blive klippet med «…». Hjem og Hylde beholder deres størrelse.
+større ud end appens egne faner — Jarvis 780 × 320, Aktier 760 × 260, mod
+640 × 190 — så husets sætninger (tallene står i ord, ikke i cifre) kan bryde over
+flere linjer i stedet for at blive klippet med «…». Hjem og Hylde beholder deres
+størrelse.
 
 - **«Jarvis» (hjerne-ikonet) — kommandocentret:** hvor mange kort der venter
-  (badge + husets egne ord), det nyeste kort med afsender (klik åbner præcis det
-  kort), nye beskeder fra huset, hvad huset laver lige nu + hvad det sidst
-  leverede og hvornår, navn og farve pr. agent (grøn arbejder, grå hviler, rød
-  fejl), og knappen **«Åbn Kommandocenter»**.
-- **«Aktier» (kurve-ikonet):** depotets værdi **stort** og i ord, dagens ændring
-  i ord med pil og farve — **grøn op, rød ned, grå uændret** — næste regnskab
-  («MU aflægger regnskab om 14 dage», med «foreløbig dato» hvis datoen er
-  kildens gæt), laboratoriernes ene sætning, og knappen **«Åbn Investor»**.
+  (badge + husets egne ord), **de fem nyeste kort med «Godkend» og «Afvis»** (klik
+  på titlen åbner præcis det kort), hvad huset laver lige nu + hvad det sidst
+  leverede og hvornår, brevene, og nederst **«Sig det til Jarvis…»** med **Send**
+  plus knappen **«Åbn Kommandocenter»**. Venter der ingen kort, står agenterne i
+  stedet (grøn arbejder, grå hviler, rød fejl).
+- **«Aktier» (kurve-ikonet):** husets korte linje øverst — **«Depotet er op, mest
+  SNDK»** med pil og farve (**grøn op, rød ned, grå uændret**) — så depotets værdi
+  **stort** og i ord og beløbet «siden seneste lukkekurs», markedsvejret og
+  kontanterne hvis huset har noget at sige om dem, næste regnskab («MU aflægger
+  regnskab om 14 dage», med «foreløbig dato» hvis datoen er kildens gæt),
+  laboratoriernes ene sætning, og knappen **«Åbn Investor»**.
 - **Et lille mærke i den foldede notch** — en prik med antallet, men kun når der
   faktisk venter kort, og kun når der ikke spiller musik. Uændret.
 
@@ -104,6 +108,12 @@ andet i systemet («Flet») end i sit vinduestitel («Jarvis»).
 
 Svarer huset ikke, står der én dæmpet linje: «Jarvis er ikke at nå». Ingen popups.
 Der hentes stadig kun **ét** kald i minuttet: begge faner læser samme svar.
+
+**Notchen afgør intet selv.** «Godkend», «Afvis» og «Send» kalder husets **egne**
+døre — de samme som appens skærme bruger — så husets værn, husets log og
+fortryd-linjen i Kommandocentret gælder for et tryk i hakket præcis som for et
+tryk på skærmen. `GET /notch` er og bliver læsning. Har huset ikke sagt hvem der
+trykker, vises der hverken knapper eller tekstfelt.
 
 ## 5. Opdateringer
 
@@ -132,7 +142,8 @@ Alt nyt ligger i sin egen mappe, så opstrøms-opdateringer kan flettes ind:
 | `boringNotch/Jarvis/JarvisPoller.swift` | henter `GET /notch` hvert 60. sekund |
 | `boringNotch/Jarvis/JarvisView.swift` | fanen «Jarvis» (kommandocentret) + mærket i den foldede notch |
 | `boringNotch/Jarvis/JarvisAktierView.swift` | fanen «Aktier» — depotets værdi, dagens ændring, regnskab, labs |
-| `boringNotch/Jarvis/JarvisFaelles.swift` | det de to faner deler: skallen, rækkerne, knappen, farverne |
+| `boringNotch/Jarvis/JarvisFaelles.swift` | det de to faner deler: skallen, rækkerne, knapperne, farverne |
+| `boringNotch/Jarvis/JarvisSkriver.swift` | det ene sted notchen skriver til huset — gennem husets egne døre |
 | `boringNotch/Jarvis/JarvisSettingsView.swift` | indstillingen «Jarvis» |
 
 Rørt ved i forvejen eksisterende filer — små tilføjelser, mærket `// JARVIS`:
@@ -157,8 +168,17 @@ Derudover:
 - `JARVIS-OPSKRIFT.md`, `jarvis.patch` — opskriften til Mac'en, og ændringerne som
   én patch mod opstrøms.
 
-Notchen **læser kun**. Der sendes aldrig noget til huset, og der er ingen nøgler i
-koden.
+`GET /notch` **læses kun** — der skrives aldrig dertil. Siden 16/9 om aftenen kan
+notchen til gengæld **svare**: «Godkend»/«Afvis» og «læg en opgave i køen» går
+gennem husets egne, i forvejen eksisterende døre, med de samme værn og den samme
+fortryd-linje som appens skærme. Alt ligger i `JarvisSkriver.swift`, adressen
+udledes af den ene adresse du selv har skrevet, og der er ingen nøgler i koden.
+
+Appen signeres med husets eget selvsignerede certifikat, **«Jarvis Notch»**
+(gyldigt til 2036), så macOS husker Accessibility-tilladelsen på tværs af
+opdateringer. Nøglen ligger kun på husets egen maskine; mangler den i bygget,
+falder det tilbage til ad hoc-signering. Se
+[JARVIS-OPSKRIFT.md](JARVIS-OPSKRIFT.md) afsnit (c2).
 
 ## 7. Bygge selv
 

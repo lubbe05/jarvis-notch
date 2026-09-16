@@ -20,10 +20,28 @@ struct JarvisSeneste: Codable, Hashable {
     var link: String?
 }
 
+/// Én linje i `venter.liste` — et kort han kan sige ja eller nej til i hakket.
+struct JarvisVenterKort: Codable, Hashable, Identifiable {
+    var id: String?
+    var titel: String?
+    var fra: String?
+    /// Kortets slags i ét dansk ord («personlig», «ai posts», «fejl» …).
+    /// Til at LÆSE, ikke til at farve efter — huset kan lave nye bunker.
+    var slags: String?
+    /// Maskinfeltet. Falsk = vis linjen UDEN knapper (fejl-kort vil lægges i
+    /// køen igen, ikke godkendes; et kort uden id kan der ikke svares på).
+    var kanGodkendes: Bool?
+
+    /// `Identifiable` skal have et id der ikke er nil.
+    var raekkeId: String { id ?? (titel ?? "?") }
+}
+
 struct JarvisVenter: Codable, Hashable {
     var antal: Int?
     var ord: String?
     var seneste: JarvisSeneste?
+    /// De højst fem nyeste. Mangler når intet venter.
+    var liste: [JarvisVenterKort]?
 }
 
 struct JarvisBreve: Codable, Hashable {
@@ -45,10 +63,25 @@ struct JarvisRegnskab: Codable, Hashable {
     var foreloebig: Bool?
 }
 
+/// Papiret der trak mest — `depot.stoerste_bevaegelse`.
+struct JarvisBevaegelse: Codable, Hashable {
+    var ticker: String?
+    var retning: String?
+    var ord: String?
+}
+
 struct JarvisDepot: Codable, Hashable {
     var vaerdiOrd: String?
     var dagsaendringOrd: String?
     var retning: String?
+    /// Aktier-fanens FØRSTE linje: «Depotet er op, mest SNDK». Farves efter
+    /// `retning`. Mangler ved `retning: "ukendt"` — der er intet at sige.
+    var dagensOrd: String?
+    var stoersteBevaegelse: JarvisBevaegelse?
+    /// To sætninger huset lægger ind ved siden af. Er nøglen der, vises
+    /// linjen; er den ikke, findes linjen ikke. Vi regner ikke på dem.
+    var markedsvejrOrd: String?
+    var kontanterOrd: String?
     var naesteRegnskab: JarvisRegnskab?
 }
 
@@ -71,6 +104,17 @@ struct JarvisLinks: Codable, Hashable {
     var investor: String?
 }
 
+/// Det huset siger vi skal sende MED, når notchen svarer. Vi gætter ingen af
+/// dem: `af` er mennesket der trykker (hele forslags-trinnet i huset hænger på
+/// det navn), og `opgaveMaal` er køen en fritekst-opgave hører i — et tomt mål
+/// er husets fælles pulje, altså en anden kø end den han taler til.
+///
+/// Mangler blokken, vises hverken knapper eller tekstfelt.
+struct JarvisSkriv: Codable, Hashable {
+    var af: String?
+    var opgaveMaal: String?
+}
+
 /// Hele svaret. Hvert felt afkodes for sig med `try?`, så et enkelt felt
 /// broen har ændret aldrig kan koste hele visningen.
 struct JarvisSvar: Codable {
@@ -83,10 +127,12 @@ struct JarvisSvar: Codable {
     var labs: JarvisLabs?
     var agenter: [JarvisAgent]?
     var links: JarvisLinks?
+    var skriv: JarvisSkriv?
     var mangler: [String]?
 
     enum CodingKeys: String, CodingKey {
-        case version, hentet, venter, breve, huset, depot, labs, agenter, links, mangler
+        case version, hentet, venter, breve, huset, depot, labs, agenter, links,
+             skriv, mangler
     }
 
     init() {}
@@ -102,6 +148,7 @@ struct JarvisSvar: Codable {
         labs = try? beholder.decodeIfPresent(JarvisLabs.self, forKey: .labs)
         agenter = try? beholder.decodeIfPresent([JarvisAgent].self, forKey: .agenter)
         links = try? beholder.decodeIfPresent(JarvisLinks.self, forKey: .links)
+        skriv = try? beholder.decodeIfPresent(JarvisSkriv.self, forKey: .skriv)
         mangler = try? beholder.decodeIfPresent([String].self, forKey: .mangler)
     }
 }
@@ -209,6 +256,41 @@ final class JarvisState: ObservableObject {
 
     var venterAntal: Int { max(0, svar?.venter?.antal ?? 0) }
 
+    // MARK: Svarene han giver fra hakket
+    //
+    // De tre felter herunder lever HER og ikke i visningen, fordi visningen
+    // bygges om hvert minut når et nyt svar kommer ind — og en halvskrevet
+    // sætning eller en knap midt i et kald må ikke forsvinde under hænderne
+    // på ham.
+
+    /// Kort der har et kald undervejs. Rækken viser en snurre i stedet for knapper.
+    @Published var besvarer: Set<String> = []
+    /// Kort han HAR svaret på: id -> ordet der står i stedet for knapperne
+    /// («Godkendt»/«Afvist»). Ryddes når kortet er væk af husets svar.
+    @Published var besvaret: [String: String] = [:]
+    /// Den ene kvitteringslinje nederst. Sættes af et svar, ryddes af næste.
+    @Published var kvittering: String?
+    /// Det han er ved at skrive i «Sig det til Jarvis…». Overlever et faneskift.
+    @Published var udkast: String = ""
+
+    /// Kortene han kan svare på lige nu. Tom liste = ingen.
+    var venterListe: [JarvisVenterKort] { svar?.venter?.liste ?? [] }
+
+    /// Navnet der skal med i et ja/nej. Tomt = huset ved det ikke, og så
+    /// vises der ingen knapper: kunne modtageren fylde navnet ud selv, kunne
+    /// en agent godkende sit eget forslag.
+    var skriverNavn: String {
+        (svar?.skriv?.af ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Køen en fritekst-opgave hører i, som huset staver den. Tomt = intet felt.
+    var opgaveMaal: String {
+        (svar?.skriv?.opgaveMaal ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var kanDoemme: Bool { !skriverNavn.isEmpty }
+    var kanSkriveOpgave: Bool { !opgaveMaal.isEmpty }
+
     var breveAntal: Int { max(0, svar?.breve?.antal ?? 0) }
 
     /// Lille mærke i den sammenfoldede notch: kun når huset faktisk venter på ham.
@@ -239,13 +321,24 @@ final class JarvisState: ObservableObject {
         guard let depot = svar?.depot else { return false }
         let harVaerdi = (depot.vaerdiOrd?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
         let harAendring = (depot.dagsaendringOrd?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
-        return harVaerdi || harAendring || depot.naesteRegnskab != nil
+        let harDagens = (depot.dagensOrd?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
+        // Markedsvejret og kontanterne lægger andre dele af huset ind. Er DE
+        // det eneste der kom, er fanen stadig værd at tegne.
+        let harSide = (depot.markedsvejrOrd?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
+            || (depot.kontanterOrd?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
+        return harVaerdi || harAendring || harDagens || harSide
+            || depot.naesteRegnskab != nil
     }
 
     func modtog(_ nyt: JarvisSvar) {
         svar = nyt
         sidst = Date()
         fejl = nil
+        // Kortet er dømt OG væk af husets svar: så skal ordet «Godkendt» også
+        // væk, ellers står der en gammel kvittering på en ny liste.
+        let stadigDer = Set((nyt.venter?.liste ?? []).compactMap { $0.id })
+        besvaret = besvaret.filter { stadigDer.contains($0.key) }
+        besvarer = besvarer.intersection(stadigDer)
     }
 
     func fejlede() {
@@ -257,6 +350,19 @@ final class JarvisState: ObservableObject {
         sidst = nil
         fejl = nil
         henter = false
+        besvarer = []
+        besvaret = [:]
+        kvittering = nil
+    }
+
+    /// Kvitteringen nederst — ét kort øjeblik, så den ikke bliver tapet.
+    func visKvittering(_ tekst: String) {
+        kvittering = tekst
+        let mit = tekst
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(12))
+            if self?.kvittering == mit { self?.kvittering = nil }
+        }
     }
 
     // MARK: - Åbning: appen på Mac'en eller web-appen

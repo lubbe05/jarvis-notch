@@ -160,6 +160,39 @@ struct JarvisKnap: View {
     }
 }
 
+/// En lille knap på en kortlinje: «Godkend», «Afvis», «Send».
+///
+/// Farven ER betydningen (husets regel fra 12/9): grøn er ja, rød er nej,
+/// accenten er «gør det». Der står ORD på dem og ikke ikoner — et flueben og
+/// et kryds i 9 punkter er to grå prikker, og han skal kunne se hvad han
+/// trykker på uden at tænke over det.
+struct JarvisLilleKnap: View {
+    let tekst: LocalizedStringKey
+    var farve: Color = .gray
+    let handling: () -> Void
+    @State private var pegerPaa: Bool = false
+
+    var body: some View {
+        Button(action: handling) {
+            Text(tekst)
+                .font(.system(size: 10, weight: .semibold))
+                .lineLimit(1)
+                .foregroundStyle(pegerPaa ? Color.white : farve)
+                .padding(.vertical, 3)
+                .padding(.horizontal, 8)
+                .background(
+                    Capsule().fill(farve.opacity(pegerPaa ? 0.75 : 0.18))
+                )
+                .overlay(Capsule().stroke(farve.opacity(0.45), lineWidth: 1))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onHover { peger in
+            withAnimation(.smooth(duration: 0.15)) { pegerPaa = peger }
+        }
+    }
+}
+
 // MARK: - Små hjælpere, fælles for begge faner
 
 /// Tom streng og kun-blanktegn tæller som «feltet kom ikke» — så tegner vi

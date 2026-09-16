@@ -23,7 +23,8 @@ følge opstrøms-opdateringer:
 - `boringNotch/Jarvis/JarvisPoller.swift` — henter `GET /notch` hvert 60. sekund
 - `boringNotch/Jarvis/JarvisView.swift` — fanen «Jarvis» (kommandocentret) + mærket i den foldede notch
 - `boringNotch/Jarvis/JarvisAktierView.swift` — fanen «Aktier»
-- `boringNotch/Jarvis/JarvisFaelles.swift` — det de to faner deler (skal, rækker, knap, farver)
+- `boringNotch/Jarvis/JarvisFaelles.swift` — det de to faner deler (skal, rækker, knapper, farver)
+- `boringNotch/Jarvis/JarvisSkriver.swift` — **det ene sted notchen skriver til huset**: Godkend/Afvis og «læg i køen», gennem husets egne døre
 - `boringNotch/Jarvis/JarvisSettingsView.swift` — indstillingen «Jarvis»
 
 Rørt ved i forvejen eksisterende filer (små, mærkede med `// JARVIS`):
@@ -36,31 +37,85 @@ Notchen **læser kun**. Der sendes aldrig noget til huset, der er ingen nøgler 
 koden, og Tailscale-adressen står kun som forslag i det tomme tekstfelt.
 Der hentes **ét** kald i minuttet — begge faner læser samme svar, samme cache.
 
-**Fanen «Jarvis» (hjerne-ikonet) — kommandocentret:** hvor mange kort der venter
-(badge + husets egne ord), det nyeste kort med hele titlen og afsenderen (klik
-åbner præcis det kort), nye beskeder fra huset, hvad huset laver lige nu + hvad
-det sidst leverede og hvornår, navn og farve pr. agent (grøn arbejder, grå
-hviler, rød fejl — hold musen over for hele sætningen), og knappen
-**«Åbn Kommandocenter»**.
+**Fanen «Jarvis» (hjerne-ikonet) — kommandocentret:** øverst hvor mange kort der
+venter (badge + husets egne ord), og til højre hvad huset laver lige nu, hvad det
+sidst leverede og hvornår, plus brevene. I midten står **de fem nyeste kort der
+venter på dig** — slags, titel og afsender, og til højre **«Godkend»** og
+**«Afvis»**. Nederst et tekstfelt, **«Sig det til Jarvis…»** med **Send**, og
+knappen **«Åbn Kommandocenter»**. Venter der ingen kort, står agenterne i stedet
+(grøn arbejder, grå hviler, rød fejl — hold musen over for hele sætningen).
 
-**Fanen «Aktier» (kurve-ikonet):** depotets værdi **stort** og i ord, dagens
-ændring i ord med pil og farve — **grøn op, rød ned, grå uændret** — næste
-regnskab («MU aflægger regnskab om 14 dage», med «foreløbig dato» hvis datoen er
-kildens gæt), laboratoriernes ene sætning, og knappen **«Åbn Investor»**.
-Kunne huset ikke måle bevægelsen, står der «bevægelsen kunne ikke måles» —
-aldrig et nul, som ville blive læst som en måling.
+### Ja og nej direkte i hakket
+
+Trykker du **Godkend** eller **Afvis**, går det gennem husets **egne** døre —
+`POST /decisions/<id>/approve` og `.../reject`, præcis de samme kald
+Kommandocentret bruger. Derfor gælder husets værn, husets log og
+**fortryd-linjen i Kommandocentret** for et tryk i notchen lige så meget som for
+et tryk på skærmen. Notchen afgør ingenting selv, og et afvist kort slettes
+ikke: det bliver liggende med status «afvist», så du kan fortryde.
+
+* **Kortet forsvinder først ved næste opslag.** Indtil da står der «Godkendt»
+  eller «Afvist» på linjen. Det er med vilje: listen skal ikke hoppe under
+  hånden på dig, og det er huset der ved om kortet er væk.
+* **Klik på titlen** åbner præcis det kort i appen, hvis du vil læse resten før
+  du dømmer.
+* **Nogle kort har ingen knapper**, og det er ikke en fejl. Et **fejl-kort** vil
+  lægges i køen igen, ikke godkendes — den knap findes i Kommandocentret, hvor
+  opgaveteksten og køen står ved siden af. Huset siger selv hvilke kort der må
+  dømmes (`kan_godkendes`).
+* **Udskyd og Fortryd er ikke i hakket.** De kræver en dato og en liste over
+  hvad du fortryder. De findes kun i Kommandocentret.
+
+### «Sig det til Jarvis…»
+
+Skriv en sætning og tryk **Send** (eller retur). Opgaven lægges i køen gennem
+`POST /tasks` — samme dør som appens Kø-skærm, med de samme værn. Kvitteringen
+står nederst:
+
+* **«lagt i køen hos Jarvis»** — den ligger der nu.
+* **«den står der allerede hos Jarvis»** — dublet-værnet fangede den. Ikke en
+  fejl, men der blev ikke skrevet noget nyt.
+* En sætning fra huset, hvis den blev afvist (fx fordi teksten lød som en
+  handel — opgaver må ikke handle). Så bliver din tekst **stående** i feltet, så
+  du ikke skal skrive den igen.
+* Hvilken kø den kommer i, bestemmer **huset** og ikke appen; den kan lægge
+  opgaven et andet sted, hvis teksten beder om et værktøj køen ikke har, og så
+  siger kvitteringen hvor den faktisk ligger.
+
+Er knapperne og tekstfeltet **slet ikke der**, har huset ikke sagt hvem der
+trykker (`skriv` i svaret). Det sker fx hvis du peger på en ældre bro. En knap
+der ikke kan virke, hører ikke på en skærm — så vises den ikke.
+
+**Fanen «Aktier» (kurve-ikonet):** øverst husets korte linje med pil og farve —
+**«Depotet er op, mest SNDK»** (grøn op, rød ned, grå uændret) — så depotets
+værdi **stort** og i ord, så beløbet: «én tusind kroner op siden seneste
+lukkekurs». Derunder markedsvejret og kontanterne, hvis huset har noget at sige
+om dem, næste regnskab («MU aflægger regnskab om 14 dage», med «foreløbig dato»
+hvis datoen er kildens gæt), laboratoriernes ene sætning, og knappen **«Åbn
+Investor»**. Kunne huset ikke måle bevægelsen, står der «bevægelsen kunne ikke
+måles» — aldrig et nul, som ville blive læst som en måling.
+
+> **Hvorfor der ikke står «i dag».** Du bad om «hvor meget jeg er oppe i dag».
+> Huset skriver «Depotet er op, mest SNDK», og beløbslinjen siger «siden seneste
+> lukkekurs». Grunden er målt: kursbrønden fyldes **én gang i døgnet** (22:30,
+> efter New York lukker), så de kurser vi sammenligner, beskriver den senest
+> **lukkede** handelsdag. «I dag» ville være forkert fire dage ud af syv — hele
+> weekenden og hver formiddag før brønden er fyldt. Vil du have «i dag»
+> alligevel, er det én sætning at rette i huset (`notch._depot`) — sig til.
 
 Når broen ikke svarer: én dæmpet linje, «Jarvis er ikke at nå». Ingen popups.
 
-**Størrelsen.** De to Jarvis-faner folder notchen større ud end appens egne:
-**760 × 260** mod **640 × 190**. Grunden er at husets tal står i **ord**
+**Størrelsen.** De to Jarvis-faner folder notchen større ud end appens egne, og
+de er ikke ens: **Jarvis 780 × 320** (den har fået kortlisten og tekstfeltet),
+**Aktier 760 × 260**, mod appens **640 × 190**. Grunden er at husets tal står i **ord**
 («cirka 167 tusind kroner», «to tusind kroner op siden seneste lukkekurs»), og
 de sætninger blev klippet med «…» i den gamle bredde. Nu bryder de over 2-3
 linjer i stedet. Hjem og Hylde er uændrede. Styringen står ét sted:
 
-- `sizing/matters.swift` — `jarvisOpenNotchSize` og `aabenNotchStoerrelse(for:)`,
-  som giver den åbne flade pr. fane. `windowSize` er nu den STØRSTE af dem (plus
-  skyggen), fordi selve vinduet laves én gang og aldrig ændrer størrelse.
+- `sizing/matters.swift` — `jarvisOpenNotchSize`, `jarvisAktierNotchSize` og
+  `aabenNotchStoerrelse(for:)`, som giver den åbne flade pr. fane. `windowSize`
+  er nu den STØRSTE af dem alle (plus skyggen), fordi selve vinduet laves én
+  gang og aldrig ændrer størrelse.
 - `models/BoringViewModel.swift` — `open()` tager størrelsen fra den valgte fane,
   og `opdaterAabenStoerrelse()` retter den når du skifter fane mens notchen er åben.
 - `ContentView.swift` — den åbne flade spændes fast på `vm.notchSize` i **både**
@@ -509,6 +564,105 @@ Teksterne er danske. Appen har ikke dansk i forvejen, så de danske sætninger
 står i `Localizable.xcstrings` som både `da` og `en` — så ser du dansk uanset
 hvilket sprog macOS kører. Nøglerne i koden er engelske og bruges som fallback
 for alle andre sprog.
+
+## (c2) Tilladelserne skal holde: husets eget certifikat
+
+**Problemet, som du selv har mærket:** hver gang appen opdaterede sig, ville
+macOS have Accessibility-tilladelsen igen. Det var ikke en fejl i appen. Den blev
+**ad hoc-signeret**, altså uden en signerende identitet — og så er appens
+«mærke» dens egne bytes (cdhash). Ændrer én byte sig, er det en fremmed app for
+macOS' tilladelsesdatabase, og hvert byg ændrer flere tusind bytes.
+
+**Kuren er ét certifikat der ikke skifter.** Huset har lavet et selvsigneret
+codesigning-certifikat, **«Jarvis Notch»**, gyldigt til **13. september 2036**.
+Nu er kravet «signeret af Jarvis Notch» i stedet for «præcis disse bytes», og så
+husker macOS tilladelsen fra byg til byg.
+
+* Nøglen og certifikatet ligger **kun** i `~/.jarvis/notch/` på husets maskine
+  (`jarvis-notch-cert.key`, `.crt`, `.p12`, `.password`, alle mode 600). De står
+  **ikke** i noget repo, og de må ikke komme til at gøre det.
+* Det er **ikke** Apple-signering. macOS advarer stadig første gang (samme
+  `xattr`-trin som før), og der er **intet team-id** — det er også meningen:
+  uden team-id går library validation ikke i gang, og
+  `MediaRemoteAdapter.framework` kan stadig indlæses.
+* Mangler certifikatet i bygget, falder det tilbage til ad hoc som før. Så
+  virker appen; du skal blot give Accessibility igen ved hver opdatering.
+
+### Du skal sætte to secrets, én gang
+
+Byggemaskinen hos GitHub kan ikke læse husets disk. Certifikatet kommer ind som
+to **secrets** i repoet, og dem kan kun du sætte (huset har ikke en GitHub-login
+til det — `gh` er ikke installeret på maskinen).
+
+**På husets maskine**, hent de to værdier frem:
+
+```bash
+cat ~/.jarvis/notch/jarvis-notch-cert.p12.base64   # den lange linje = JARVIS_CERT_P12
+cat ~/.jarvis/notch/jarvis-notch-cert.password     # de 40 tegn      = JARVIS_CERT_PASSWORD
+```
+
+**I browseren:** <https://github.com/lubbe05/jarvis-notch/settings/secrets/actions>
+→ **New repository secret**, to gange:
+
+| Name | Secret |
+| --- | --- |
+| `JARVIS_CERT_P12` | hele den lange base64-linje (ingen linjeskift) |
+| `JARVIS_CERT_PASSWORD` | de 40 tegn |
+
+**Eller med `gh`**, hvis du har den på Mac'en og er logget ind som `lubbe05`:
+
+```bash
+gh secret set JARVIS_CERT_P12      --repo lubbe05/jarvis-notch < ~/.jarvis/notch/jarvis-notch-cert.p12.base64
+gh secret set JARVIS_CERT_PASSWORD --repo lubbe05/jarvis-notch < ~/.jarvis/notch/jarvis-notch-cert.password
+```
+
+(De to filer ligger på **Linux-maskinen**, så kopier dem over, eller kør
+kommandoerne derfra hvis `gh` bliver installeret.)
+
+Derefter siger hvert byg i loggen hvem der signerede — kig efter linjen
+«signering: OK — alt signeret med certifikatet «Jarvis Notch»» i
+`build-logs/latest.md` eller i udgivelsesteksten.
+
+### Én sidste gang skal du give Accessibility igen
+
+**Det første byg med certifikatet er en ny identitet for macOS.** Så den ene gang
+skal du gøre det her:
+
+1. Installér den nye version (den kommer gennem appen, se nedenfor).
+2. Systemindstillinger → **Anonymitet & sikkerhed** → **Tilgængelighed**.
+3. **Fjern** `boringNotch` med **«−»**, og **tilføj** den igen med **«+»**
+   (eller slå den fra og til).
+4. Gør det samme for skærmoptagelse, hvis den også er blevet glemt.
+
+**Derefter holder det.** Alle senere opdateringer er signeret med det samme
+certifikat, og macOS ser dem som den samme app.
+
+### Opdateringen gennem appen virker — det er efterprøvet
+
+Sparkle godtager skiftet fra ad hoc til certifikatet. Ikke fordi den er ligeglad,
+men fordi den har en regel for netop dette (**«key rotation»**): den godtager en
+opdatering hvis **enten** signaturen på arkivet (husets EdDSA-nøgle) **eller**
+kode-signaturen matcher den gamle app — og huset har ikke skiftet EdDSA-nøgle.
+Sparkles egen dokumentation kalder det «rotating signing keys», og reglen står
+ordret i kilden (`SUUpdateValidator.m`): *«old and new Ed(DSA) public keys are
+the same and valid (it allows change of Code Signing identity)»*.
+
+To ting skal derfor holde, og de gør:
+
+* **EdDSA-nøglen må ikke skifte i samme opdatering.** Den er uændret
+  (`~/.jarvis/notch/sparkle-ed25519.key`). Man må skifte ét af de to, aldrig
+  begge på én gang.
+* **Den nye app skal være signeret og forseglet korrekt i sig selv.** Det er
+  netop det bygget måler: `codesign --verify --deep --strict` skal stå OK, og
+  ellers bliver bygget rødt og der udgives intet.
+
+`SUVerifyUpdateBeforeExtraction` er ikke sat i `Info.plist` (standard: fra), og
+den ville have været den ene ting der kunne have krævet en Apple-signeret dmg.
+
+**Hvis opdateringen mod forventning bliver afvist** («The update is improperly
+signed and could not be validated»), er kuren den samme som første installation:
+hent dmg'en fra Releases og træk appen over i Programmer én gang i hånden.
+Derefter er identiteten på plads, og appen opdaterer sig selv igen.
 
 ## (d) Hvis det ikke kompilerer
 
