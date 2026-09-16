@@ -20,6 +20,10 @@ permissions:
 jobs:
   build:
     name: Build Boring Notch
+    # JARVIS: opstrøms-bygget koster det samme i macOS-minutter som vores eget
+    # (.github/workflows/jarvis_build.yml), og vi vil ikke betale for det to gange.
+    # Det kører derfor kun i opstrøms-repoet. Slet de to linjer for at få det tilbage.
+    if: github.repository == 'TheBoredTeam/boring.notch'
     strategy:
       matrix:
         platform:

@@ -40,6 +40,115 @@ Sammenfoldet: et lille hjerne-ikon med antallet, men kun når der faktisk er
 kort der venter, og kun når der ikke spiller musik. Mærket har forrang for
 det lille ansigt.
 
+## Installér som app (uden Xcode) — den nemme vej
+
+Du behøver ikke Xcode. GitHub bygger appen på en Mac for os, hver gang der
+kommer noget nyt på grenen `jarvis`. Opskriften ligger i
+`.github/workflows/jarvis_build.yml`, og den bruger **ingen** certifikater og
+ingen hemmeligheder — appen bliver «ad hoc-signeret», og det har konsekvenser
+du skal kende (de står ærligt nedenfor).
+
+**1. Hent den færdige app.**
+Gå til <https://github.com/lubbe05/jarvis-notch> → fanen **Actions** → i
+listen til venstre: **«Jarvis: byg appen»** → klik øverste (nyeste) kørsel.
+Er der et grønt flueben, så rul ned til **Artifacts** og hent
+**`boringNotch-jarvis-<sha7>`** (de sidste syv tegn af commit'en). Artifacts
+ligger i 30 dage.
+
+Browseren henter en `.zip`. Pak den ud — indeni ligger to ting, og du skal kun
+bruge én af dem:
+
+- `boringNotch-jarvis-<sha7>.dmg` — dobbeltklik, træk **boringNotch** over i
+  **Programmer**.
+- `boringNotch-jarvis-<sha7>.zip` — pak ud, træk **boringNotch.app** til
+  **/Programmer**. (Denne vej virker altid; dmg'en laves kun hvis
+  dmg-værktøjet kunne installeres på byggemaskinen.)
+
+**2. Luk den gamle først.** Klik menulinjens ikon → **Quit**, ellers vil macOS
+ikke lade dig erstatte appen. Sig **Erstat** når Finder spørger.
+
+**3. Første start: macOS advarer.** Appen er ad hoc-signeret — det vil sige
+signeret uden et Apple-udviklerkonto — så macOS siger noget i retning af
+«boringNotch kan ikke åbnes, fordi Apple ikke kan søge efter skadelig
+software». Det er ikke en fejl i appen; det er prisen for at bygge uden
+udviklerkonto. To veje:
+
+- **Højreklik på appen → Åbn → Åbn.** Kun første gang. (Virker ikke altid på
+  nyere macOS — så tag den næste.)
+- Systemindstillinger → **Anonymitet & sikkerhed** → rul ned → **«Åbn
+  alligevel»**.
+- Eller i Terminal:
+
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/boringNotch.app
+  ```
+
+**4. Dine indstillinger følger med.** Appen har samme bundle-id som den du har
+i dag (`theboringteam.boringnotch`), så alt hvad du har sat — faner, højde,
+genveje — står der stadig.
+
+**5. Tilladelserne gør ikke.** macOS binder tilladelser til appens *signatur*,
+og vores er en anden end den fra The Boring Teams officielle udgivelse. Regn
+derfor med at skulle give dem igen: **kalender**, **påmindelser**,
+**tilgængelighed**, **skærmoptagelse**, **Spotify/Musik**. Hvis en tilladelse
+sidder fast (afkrydset, men virker ikke): Systemindstillinger → **Anonymitet &
+sikkerhed** → den pågældende liste → markér **boringNotch** → **«−»** → start
+appen igen og sig ja, når den spørger.
+
+**6. Start ved login.** Appen bruger allerede `LaunchAtLogin` (Apples
+`SMAppService`) — det er uændret i vores byg, der er ikke rørt en linje ved
+det. Efter udskiftningen: **Settings → General → «Launch at login»** — slå den
+**fra og til igen**, så macOS peger på den nye kopi. Tjek den gerne i
+Systemindstillinger → **Generelt → Loginemner**. Bemærk: login-emnet vil kun
+opføre sig pænt når appen ligger i **/Programmer** og karantænen er væk
+(punkt 3).
+
+**7. Jarvis-adressen.** Settings → **Jarvis** → skriv
+`http://<din-tailscale-adresse>:8000/notch` → **Test** skal svare «Jarvis svarede».
+
+**8. Slå automatiske opdateringer fra.** Settings → **About** →
+«Automatically check for updates» **fra**. Ellers kan appen en dag opdatere
+sig selv til The Boring Teams officielle udgave — og så er Jarvis-fanen væk.
+Vil du have nyt fra opstrøms, tager vi det i huset og bygger igen.
+
+### Nyt byg, når der er rettet noget
+
+Hver gang huset skubber til grenen `jarvis`, starter bygget af sig selv
+(og du kan selv starte et: Actions → «Jarvis: byg appen» → **Run workflow**).
+Så henter du bare den nyeste artifact og gentager punkt 1-3 og 6.
+
+### Hvad bygget koster
+
+Repoet er privat, og macOS-maskiner tæller 10× i GitHubs gratis timer. Derfor:
+vi bygger kun **arm64** (alle Mac'er med notch er Apple Silicon), og opstrøms
+eget `cicd.yml` er slået fra i vores kopi, så vi ikke betaler for det samme byg
+to gange. Løber timerne alligevel tør, er løsningen at gøre repoet offentligt
+(så er Actions gratis) — men så ligger Tailscale-adressen i opskriften også
+offentligt, så det er dit valg.
+
+## Byggeloggen: sådan ser huset hvad der gik galt
+
+Huset har ingen adgang til GitHubs Actions-side. Derfor skriver bygget sin egen
+log tilbage til repoet — også når det fejler — på grenen **`build-logs`**:
+
+- `build-logs/latest.md` — status (grøn/rød), dato, sha, link til kørslen, de
+  første 200 `error:`/`warning:`-linjer og de sidste 80 linjer af loggen
+- `build-logs/fejl.txt` — alle `error:`-linjer
+- `build-logs/byggelog-hale.txt` — de sidste 1500 linjer rå log
+
+I huset læses den sådan:
+
+```bash
+cd ~/jarvis-notch
+git fetch origin build-logs
+git show origin/build-logs:build-logs/latest.md
+```
+
+Den gren indeholder kun logfiler — aldrig kode — og bygget skriver den med
+GitHubs eget `GITHUB_TOKEN`. Der er ingen hemmeligheder i den.
+
+## Byg selv i Xcode
+
 ## (a) Forudsætninger
 
 - **macOS 15.6 eller nyere** og **Xcode 26 eller nyere** for at bygge
