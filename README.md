@@ -1,3 +1,20 @@
+*Private fork of [boring.notch](https://github.com/TheBoredTeam/boring.notch) — not the official project; get the official app at [theboring.name](https://theboring.name).*
+
+> [!IMPORTANT]
+> **Dette er en privat fork af [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch)**,
+> lavet til ét hjem. Den er ikke officiel og ikke understøttet af The Boring Team;
+> fejl i denne kopi meldes [her](https://github.com/lubbe05/jarvis-notch/issues),
+> aldrig hos dem. Al ære og den uændrede GPL-3.0-licens ([LICENSE](LICENSE))
+> tilhører The Boring Team.
+>
+> **Den app, huset bruger, ligger på grenen
+> [`jarvis`](https://github.com/lubbe05/jarvis-notch/tree/jarvis)** — dér står også
+> den README, der beskriver den. Denne gren er kun opstrøms' kode med Jarvis-fanen.
+>
+> Vil du bare have appen, så hent den officielle: [theboring.name](https://theboring.name).
+
+---
+
 <h1 align="center">
   <br>
   <a href="http://theboring.name"><img src="https://framerusercontent.com/images/RFK4vs0kn8pRMuOO58JeyoemXA.png?scale-down-to=256" alt="Boring Notch" width="150"></a>
