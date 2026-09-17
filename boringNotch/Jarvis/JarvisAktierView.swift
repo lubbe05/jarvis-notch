@@ -38,7 +38,7 @@
 //
 //  Fanen henter INTET selv. Den læser `depot`, `labs` og `links` af præcis
 //  det svar Jarvis-fanen allerede har hentet: samme poller, samme cache,
-//  ét kald hvert minut.
+//  ét kald hvert 20. sekund.
 //
 //  Huset skriver «siden seneste lukkekurs», ikke «i dag», og det er målt:
 //  kursbrønden fyldes én gang i døgnet. Vi omskriver ikke husets sætninger.

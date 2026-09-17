@@ -11,7 +11,7 @@
 //  svar, eller om pollerens løkke var død — to ting med hver sin kur. Derfor
 //  står der nu et LIVSTEGN under «Test», i ord: hvornår huset sidst blev hørt,
 //  hvornår notchen sidst prøvede, og om forsøgene går galt i træk. Flytter
-//  «sidst prøvet» sig hvert minut, lever løkken og vejen er væk; står den
+//  «sidst prøvet» sig hvert 20. sekund, lever løkken og vejen er væk; står den
 //  stille, er løkken død. Se docs/notch-poll-2026-09-18.md.
 //
 //  Appen VÆLGES i en liste over det der kører lige nu, ikke ved at skrive et

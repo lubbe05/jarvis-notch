@@ -2,10 +2,17 @@
 //  JarvisPoller.swift
 //  boringNotch
 //
-//  Henter husets ene læse-rute (GET /notch) hvert 60. sekund — aldrig
-//  oftere end hvert 30. — og kun når «Jarvis-adresse» er sat i
+//  Henter husets ene læse-rute (GET /notch) hvert 20. sekund — aldrig
+//  oftere end hvert 15. — og kun når «Jarvis-adresse» er sat i
 //  indstillingerne. Skriver aldrig til broen. Fejl er stille: ingen
-//  advarsler, ingen genforsøgs-storm, næste forsøg om et halvt minut.
+//  advarsler, ingen genforsøgs-storm, næste forsøg om et kvart minut.
+//
+//  18/9 blev kadencen 60 -> 20 sekunder og gulvet 30 -> 15. Grunden er
+//  `claude`-blokken: Claude standser HELT når han spørger om lov, og et minuts
+//  forsinkelse på den besked er et minut hvor ingen bygger noget. Svaret er
+//  under 4 kB og går over Tailscale til hans egen maskine, så tre kald i
+//  minuttet er ikke en belastning nogen kan måle — hverken på broen eller på
+//  batteriet (kaldet varer millisekunder og sover resten af tiden).
 //
 //  17/9 10:32-11:19 stod der «Jarvis er ikke at nå» i tre kvarter, mens broen
 //  svarede alle andre normalt — og broens adgangslog havde INGEN GET /notch fra
@@ -22,14 +29,14 @@
 //       kommer ud.
 //    2. Intet vækkede løkken. Nu spørger vi med det samme når Mac'en vågner, når
 //       skærmene vågner, når hans session bliver aktiv igen, og når en
-//       Jarvis-fane kommer frem — altid med husets 30-sekunders-gulv foran.
+//       Jarvis-fane kommer frem — altid med husets 15-sekunders-gulv foran.
 //    3. Efter en fejl ventede vi et helt minut. Nu venter vi kun gulvet ud, så
-//       en vej der kommer tilbage bliver fundet inden for et halvt minut.
+//       en vej der kommer tilbage bliver fundet inden for et kvart minut.
 //    4. Vi kunne ikke se bagefter om løkken levede. Nu står der tre linjer i
 //       Indstillinger -> Jarvis, i ord: hvornår huset sidst blev hørt, hvornår
 //       notchen sidst PRØVEDE, og hvor mange forsøg der er gået galt i træk.
-//       Flytter «sidst prøvet» sig hvert minut mens der står at huset ikke er at
-//       nå, så lever løkken og vejen er væk. Står den stille, er løkken død.
+//       Flytter «sidst prøvet» sig hvert 20. sekund mens der står at huset ikke
+//       er at nå, så lever løkken og vejen er væk. Står den stille, er den død.
 //
 //  Tålmodigheden er flyttet fra 5 til 15 sekunder med vilje: vejen til huset går
 //  gennem Tailscale, og efter Mac'ens søvn skal håndtrykket (og måske en
@@ -43,10 +50,10 @@ import Foundation
 final class JarvisPoller {
     static let shared = JarvisPoller()
 
-    /// Hvileperiode mellem to kald. Gulvet på 30 sekunder er husets regel, og
+    /// Hvileperiode mellem to kald. Gulvet på 15 sekunder er husets regel, og
     /// BÅDE løkken og en opvågning spørger det om lov (`resterendeGulv`).
-    private static let sekunderMellemKald: TimeInterval = 60
-    private static let mindsteSekunder: TimeInterval = 30
+    private static let sekunderMellemKald: TimeInterval = 20
+    private static let mindsteSekunder: TimeInterval = 15
     /// Tålmodigheden med ét kald. Skal blive et godt stykke under hvilet, så to
     /// kald aldrig kan overlappe.
     private static let taalmodighed: TimeInterval = 15
@@ -113,7 +120,7 @@ final class JarvisPoller {
                 if Task.isCancelled { break }
 
                 // Efter en fejl venter vi kun gulvet ud, så en vej der kommer
-                // tilbage bliver fundet inden for et halvt minut i stedet for et.
+                // tilbage bliver fundet inden for et kvart minut i stedet for et.
                 // En TOM adresse er derimod ingen fejl — Jarvis er slået fra, og
                 // så er der intet at skynde sig med.
                 let hvile = (svarede || !JarvisState.shared.erSlaaetTil)
@@ -144,7 +151,7 @@ final class JarvisPoller {
     ///      samme, så der er ikke mere at gøre.
     ///   2. Ellers: spring over hvis et kald allerede er i luften.
     ///   3. Ellers: spørg NU — men kun hvis gulvet er overholdt. En opvågning må
-    ///      ikke være en bagdør rundt om husets 30-sekunders-regel.
+    ///      ikke være en bagdør rundt om husets 15-sekunders-regel.
     func vaekOp() {
         guard koerer else {
             start()
@@ -202,7 +209,7 @@ final class JarvisPoller {
 
         guard !adresse.isEmpty else {
             // Jarvis er slået fra. Ryd kun hvis der ER noget at rydde: ellers
-            // sender vi en ændring til hver Jarvis-visning hvert minut for
+            // sender vi en ændring til hver Jarvis-visning ved hvert kald for
             // ingenting, og @Published spørger ikke om værdien blev anderledes.
             if state.svar != nil || state.fejl != nil || state.sidst != nil {
                 state.nulstil()

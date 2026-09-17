@@ -67,6 +67,11 @@ struct ContentView: View {
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
         {
             chinWidth = 640
+        } else if jarvis.claudePopup && vm.notchState == .closed && !vm.hideOnClosed {
+            // JARVIS: de fem sekunder hvor «Claude venter på dit svar» står i
+            // den lukkede notch. Samme mål som kortet selv, så hover-feltet
+            // under notchen passer med fladen.
+            chinWidth += JarvisClaudeLukketKort.ekstraBredde()
         } else if (!coordinator.expandingView.show || coordinator.expandingView.type == .music)
             && vm.notchState == .closed && (musicManager.isPlaying || !musicManager.isPlayerIdle)
             && coordinator.musicLiveActivityEnabled && !vm.hideOnClosed
@@ -321,6 +326,16 @@ struct ContentView: View {
                             .frame(width: 76, alignment: .trailing)
                         }
                         .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
+                      } else if jarvis.claudePopup && vm.notchState == .closed && !vm.hideOnClosed {
+                          // JARVIS: Claude er standset og venter på ham. Fem
+                          // sekunder, og så er notchen sig selv igen — uret står
+                          // i JarvisState (`claudePopup`), ikke her. Grenen står
+                          // FØR musikken med vilje: en besked der venter på et
+                          // svar, er vigtigere end et albumbillede i fem
+                          // sekunder, og den kommer kun når tilstanden SKIFTER,
+                          // aldrig ved hvert kald.
+                          JarvisClaudeLukketKort()
+                              .transition(.opacity)
                       } else if coordinator.sneakPeek.show && Defaults[.inlineHUD] && (coordinator.sneakPeek.type != .music) && (coordinator.sneakPeek.type != .battery) && vm.notchState == .closed {
                           InlineHUD(type: $coordinator.sneakPeek.type, value: $coordinator.sneakPeek.value, icon: $coordinator.sneakPeek.icon, hoverAnimation: $isHovering, gestureProgress: $gestureProgress)
                               .transition(.opacity)

@@ -47,7 +47,7 @@ struct JarvisRamme<Indhold: View>: View {
             // `vaekOp()` og ikke `start()`: fanen bygges fra ny hver gang han
             // åbner notchen på den (ContentView), så DETTE er øjeblikket hvor han
             // kigger. Løkken rejses hvis den er død, og der spørges med det samme
-            // — men aldrig oftere end husets gulv på 30 sekunder tillader.
+            // — men aldrig oftere end husets gulv på 15 sekunder tillader.
             // 17/9: her stod `start()`, og `start()` kunne ikke rejse en død
             // løkke, så et kig på fanen hjalp ingenting.
             JarvisPoller.shared.vaekOp()
@@ -246,5 +246,46 @@ func jarvisAgentfarve(_ tilstand: String?) -> Color {
     case "arbejder": return .green
     case "fejl": return .red
     default: return .gray
+    }
+}
+
+/// Rav. Den ene farve huset ikke havde i forvejen, og den betyder præcis én
+/// ting: **det er din tur** (Claude venter, eller forbruget er ved at slippe op).
+/// Grøn er ja, rød er nej eller fare, accenten er «gør det» — og rav er «se her».
+/// Der er ingen pynt-farver på hans skærme (husets regel fra 12/9).
+var jarvisRav: Color { Color(red: 0.98, green: 0.71, blue: 0.24) }
+
+/// `claude.forbrug.farve`: maskinfeltet, aldrig sætningen. Accenten er ro,
+/// rav er advarsel, rød er fare — og grå er «huset ved det ikke».
+func jarvisForbrugsfarve(_ farve: String?) -> Color {
+    switch (farve ?? "").lowercased() {
+    case "ro": return Color.effectiveAccent
+    case "advarsel": return jarvisRav
+    case "fare": return .red
+    default: return .gray
+    }
+}
+
+/// `claude.tilstand`: rav når det er hans tur, accenten når Claude arbejder,
+/// grå ellers. Et gråt ikon er en tilstand ingen skal gøre noget ved.
+func jarvisClaudefarve(_ tilstand: String?) -> Color {
+    switch (tilstand ?? "").lowercased() {
+    case "venter", "tilladelse": return jarvisRav
+    case "arbejder": return Color.effectiveAccent
+    default: return .gray
+    }
+}
+
+/// Ikonet der hører til Claudes tilstand. En tilladelse er en løftet hånd («må
+/// jeg?») og et almindeligt «venter» er en boble («hvad siger du?») — de to ting
+/// er ikke det samme, og han skal kunne se forskellen uden at læse.
+/// Begge symboler findes fra macOS 11; et navn der alligevel ikke findes, tegner
+/// tomt og bryder ikke bygget.
+func jarvisClaudeikon(_ tilstand: String?) -> String {
+    switch (tilstand ?? "").lowercased() {
+    case "tilladelse": return "hand.raised.fill"
+    case "venter": return "exclamationmark.bubble.fill"
+    case "arbejder": return "hammer.fill"
+    default: return "questionmark.circle"
     }
 }

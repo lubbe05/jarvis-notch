@@ -33,6 +33,9 @@ struct JarvisView: View {
     @ObservedObject private var jarvis = JarvisState.shared
     /// Sandt mens en opgave er på vej i køen. Kun til Send-knappen.
     @State private var sender: Bool = false
+    /// Ikonets gennemsigtighed i Claude-rækken. Pulser to gange når en besked
+    /// blev misset, mens notchen var lukket — ellers står den på 1.
+    @State private var claudeIkonOpacitet: Double = 1.0
 
     var body: some View {
         JarvisRamme {
@@ -42,6 +45,7 @@ struct JarvisView: View {
 
     private var indhold: some View {
         VStack(alignment: .leading, spacing: 8) {
+            claudeRaekke
             topLinje
             venteListe
             Spacer(minLength: 0)
@@ -76,6 +80,7 @@ struct JarvisView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 4)
+            forbrugBlok
             husetBlok
                 .frame(width: 320, alignment: .topLeading)
         }
@@ -119,6 +124,207 @@ struct JarvisView: View {
         }
     }
 
+    // MARK: Claude — venter han på et svar?
+
+    /// Rækken der står ØVERST på fanen, så længe Claude venter eller beder om
+    /// lov. Den er FAST og giver ikke plads til noget: Claude står HELT stille
+    /// indtil der er svaret, så et ubesvaret spørgsmål koster arbejdstimer —
+    /// det er det eneste på fanen der bliver dyrere af at blive overset.
+    ///
+    /// Prisen står i højdebudgettet (sizing/matters.swift): rækken koster 32 pt
+    /// med mellemrummet, fanen havde 19 pt luft, og derfor viser kortlisten fire
+    /// rækker i stedet for fem mens rækken står (se `venteListe`). De kort der
+    /// ryger, er de ældste, og de står stadig i Kommandocentret.
+    @ViewBuilder
+    private var claudeRaekke: some View {
+        if jarvis.claudeVenter {
+            let farve = jarvisClaudefarve(jarvis.claudeTilstand)
+            HStack(alignment: .center, spacing: 7) {
+                Image(systemName: jarvisClaudeikon(jarvis.claudeTilstand))
+                    .font(.system(size: 11))
+                    .foregroundStyle(farve)
+                    .opacity(claudeIkonOpacitet)
+                    .frame(width: 14)
+                Text(jarvisOrd(jarvis.claude?.ord)
+                     ?? NSLocalizedString("Claude is waiting for your answer",
+                                          comment: "Jarvis: Claude has stopped and needs an answer"))
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                // Det sidste Claude sagde. ÉN linje, klippet: huset har i
+                // forvejen skåret den til 120 tegn, og hele sætningen står i
+                // terminalen, som «Åbn» går til.
+                if let sidste = jarvisOrd(jarvis.claude?.sidsteOrd) {
+                    Text(sidste)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.gray)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .layoutPriority(-1)
+                }
+                if let siden = jarvisOrd(jarvis.claude?.sidenOrd) {
+                    Text(siden)
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.gray.opacity(0.85))
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                // Samme mønster som JarvisLinkRaekke og JarvisKnap: trykket går
+                // ind på hovedtråden gennem den ene dør, og der handles intet her.
+                JarvisLilleKnap(tekst: "Open Claude", farve: farve) {
+                    Task { @MainActor in JarvisState.shared.aabnClaude() }
+                }
+            }
+            .padding(.vertical, 3)
+            .padding(.horizontal, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(farve.opacity(0.14))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 7)
+                    .stroke(farve.opacity(0.35), lineWidth: 1)
+            )
+            .onAppear { pulsHvisMisset() }
+            .onChange(of: jarvis.claudePuls) { _, _ in pulsHvisMisset() }
+        }
+    }
+
+    /// To pulser i ikonet — og kun når beskeden faktisk blev MISSET.
+    ///
+    /// Pop-uppen i den lukkede notch står fem sekunder. Sad han ikke ved
+    /// skærmen, er rækken herover det eneste sted beskeden findes, og en række
+    /// der altid har stået der, ser man ikke. Kvitteringen ligger i JarvisState
+    /// og ikke her, fordi fanen bygges fra ny hver gang notchen åbnes — en
+    /// `@State` ville pulse ved hvert kig, og det er det samme som aldrig.
+    private func pulsHvisMisset() {
+        guard jarvis.claudeBoerPulse else { return }
+        jarvis.kvitterClaudePuls()
+        claudeIkonOpacitet = 1.0
+        Task { @MainActor in
+            for _ in 0 ..< 2 {
+                withAnimation(.easeInOut(duration: 0.35)) { claudeIkonOpacitet = 0.2 }
+                try? await Task.sleep(for: .milliseconds(370))
+                withAnimation(.easeInOut(duration: 0.35)) { claudeIkonOpacitet = 1.0 }
+                try? await Task.sleep(for: .milliseconds(370))
+            }
+        }
+    }
+
+    // MARK: Claudes forbrug
+
+    /// Ringen for 5-timers-vinduet og strimlen for ugen.
+    ///
+    /// Den står i TOPLINJEN mellem badgen og husets blok, og det er en
+    /// højde-beslutning: toplinjen er 47 pt høj i forvejen (husets tre linjer
+    /// til højre), og blokken her er 47 pt. Forbruget koster altså ikke en
+    /// eneste kortrække.
+    ///
+    /// **Det eneste tal på hans skærme.** Husets regel fra 7/9 er ord og ikke
+    /// tal — men Lauritz bad 18/9 selv om procenten her, og et forbrug ER en
+    /// procentdel: «næsten opbrugt» siger ikke om han kan bygge en time mere.
+    /// Alt det øvrige er husets egne sætninger.
+    ///
+    /// Farven er `forbrug.farve` — maskinfeltet, aldrig sætningen. Er forbruget
+    /// ukendt, står der en grå tom ring og husets ord for det; vi tegner ikke
+    /// et gæt som om det var målt.
+    @ViewBuilder
+    private var forbrugBlok: some View {
+        if let forbrug = jarvis.claudeForbrug {
+            let farve = jarvisForbrugsfarve(forbrug.farve)
+            VStack(alignment: .leading, spacing: 4) {
+                if forbrug.erKendt {
+                    HStack(alignment: .center, spacing: 6) {
+                        forbrugRing(forbrug, farve: farve)
+                        Text(jarvisOrd(forbrug.vindueNulstillesOrd)
+                             ?? jarvisOrd(forbrug.vindueOrd) ?? "")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Color.gray)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    ugeStrimmel(forbrug, farve: farve)
+                } else {
+                    HStack(alignment: .center, spacing: 6) {
+                        Circle()
+                            .stroke(Color.gray.opacity(0.28), lineWidth: 3)
+                            .frame(width: 26, height: 26)
+                        Text(jarvisOrd(forbrug.vindueOrd)
+                             ?? NSLocalizedString("usage unknown right now",
+                                                  comment: "Jarvis: the house could not read Claude's usage"))
+                            .font(.system(size: 9))
+                            .foregroundStyle(Color.gray)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .frame(width: 136, alignment: .leading)
+            .help(forbrugHjaelp(forbrug))
+        }
+    }
+
+    /// 5-timers-vinduet: en ring med procenten i midten.
+    private func forbrugRing(_ forbrug: JarvisForbrug, farve: Color) -> some View {
+        let andel = forbrug.andel(forbrug.vinduePct)
+        return ZStack {
+            Circle()
+                .stroke(Color.gray.opacity(0.22), lineWidth: 3.5)
+            Circle()
+                .trim(from: 0, to: andel)
+                .stroke(farve, style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
+                // Uret starter foroven, ikke til højre.
+                .rotationEffect(.degrees(-90))
+            Text(verbatim: forbrug.pctTekst(forbrug.vinduePct))
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(farve)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .padding(.horizontal, 1)
+        }
+        .frame(width: 32, height: 32)
+    }
+
+    /// Ugen: en smal strimmel, procenten, og husets ord for hvornår den nulstilles.
+    private func ugeStrimmel(_ forbrug: JarvisForbrug, farve: Color) -> some View {
+        let bredde: CGFloat = 40
+        let andel = forbrug.andel(forbrug.ugePct)
+        return HStack(alignment: .center, spacing: 5) {
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.gray.opacity(0.22))
+                    .frame(width: bredde, height: 4)
+                Capsule()
+                    .fill(farve)
+                    .frame(width: bredde * andel, height: 4)
+            }
+            Text(verbatim: forbrug.pctTekst(forbrug.ugePct))
+                .font(.system(size: 9, weight: .medium, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(farve)
+                .lineLimit(1)
+            Text(jarvisOrd(forbrug.ugeNulstillesOrd) ?? jarvisOrd(forbrug.ugeOrd) ?? "")
+                .font(.system(size: 9))
+                .foregroundStyle(Color.gray)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+    }
+
+    /// Tooltip: hele forbruget i husets egne ord, for den plads ringen ikke har.
+    private func forbrugHjaelp(_ forbrug: JarvisForbrug) -> String {
+        var linjer: [String] = []
+        for ord in [forbrug.vindueOrd, forbrug.vindueNulstillesOrd,
+                    forbrug.ugeOrd, forbrug.ugeNulstillesOrd, forbrug.hentetOrd] {
+            if let ord = jarvisOrd(ord) { linjer.append(ord) }
+        }
+        return linjer.joined(separator: "\n")
+    }
+
     // MARK: Kortene han kan svare på
 
     /// Listen — og den giver efter i ANTAL RÆKKER, ikke i toppen.
@@ -135,8 +341,13 @@ struct JarvisView: View {
     private var venteListe: some View {
         let liste = jarvis.venterListe
         if !liste.isEmpty {
+            // Står Claude-rækken øverst, er der plads til FIRE kort og ikke fem:
+            // rækken koster 32 pt af fanens 19 pt luft, og de resterende 13 pt
+            // kommer fra den femte kortrække. `prefix` klipper selv, så de fem
+            // muligheder herunder må godt overlappe.
+            let maks = jarvis.claudeVenter ? 4 : 5
             ViewThatFits(in: .vertical) {
-                raekker(liste)
+                raekker(Array(liste.prefix(maks)))
                 raekker(Array(liste.prefix(4)))
                 raekker(Array(liste.prefix(3)))
                 raekker(Array(liste.prefix(2)))
@@ -503,6 +714,11 @@ struct JarvisLukketMaerke: View {
                 .fill(.black)
                 .frame(width: max(0, vm.closedNotchSize.width - 20))
             // Højre: prikken med antallet. Intet når huset ikke venter på ham.
+            //
+            // 18/9: venter CLAUDE på et svar, får prikken en lille rav-prik i
+            // kanten — og venter der INTET kort, står rav-prikken alene, lille.
+            // Fodaftrykket er det samme d × d i begge tilfælde, så `ekstraBredde`
+            // holder og mærket kan ikke flyde ud over notchens klip.
             ZStack {
                 if jarvis.venterAntal > 0 {
                     Circle()
@@ -514,11 +730,101 @@ struct JarvisLukketMaerke: View {
                         .minimumScaleFactor(0.4)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 1)
+                } else if jarvis.claudeVenter {
+                    Circle()
+                        .fill(jarvisRav)
+                        .frame(width: max(5, d * 0.42), height: max(5, d * 0.42))
                 }
             }
             .frame(width: d, height: d)
+            .overlay(alignment: .topTrailing) {
+                if jarvis.venterAntal > 0 && jarvis.claudeVenter {
+                    Circle()
+                        .fill(jarvisRav)
+                        .frame(width: max(4, d * 0.3), height: max(4, d * 0.3))
+                        .overlay(Circle().stroke(Color.black, lineWidth: 1))
+                }
+            }
         }
         .frame(height: hoejde, alignment: .center)
+    }
+}
+
+// MARK: - Pop-uppen i den LUKKEDE notch
+
+/// «Claude venter på dit svar» — fem sekunder i den lukkede notch, og så væk.
+///
+/// VALGET (18/9): det er hverken `sneakPeek` eller `InlineHUD`.
+/// `BoringViewCoordinator.toggleSneakPeek` (BoringViewCoordinator.swift:208-215)
+/// returnerer med det samme for ALLE typer undtagen `.music`, når
+/// `Defaults[.hudReplacement]` er slået fra — og den er slået fra som standard.
+/// En besked der forsvinder i stilhed, fordi han ikke har tændt for husets
+/// HUD-erstatning, er værre end ingen besked. Derfor står visningen her for sig
+/// selv, med sit eget ur i `JarvisState` (`claudePopup`, fem sekunder, samme
+/// mønster som `visKvittering`), og `ContentView` vælger den som en gren i den
+/// lukkede notch — præcis som batteri-beskeden gør det.
+///
+/// Fodaftrykket er bygget som batteri-beskedens: to sider og et sort felt i
+/// midten, der dækker selve hullet i skærmen, så teksten aldrig havner bag
+/// hakket. Notchen bliver bredere af indholdet af sig selv (den lukkede flade
+/// er ikke spændt fast på en bredde), og `computedChinWidth` får det samme mål
+/// gennem `ekstraBredde()`, så hover-feltet under notchen følger med.
+struct JarvisClaudeLukketKort: View {
+    @EnvironmentObject var vm: BoringViewModel
+    @ObservedObject private var jarvis = JarvisState.shared
+
+    /// Hver side ud over selve hullet.
+    static let sideBredde: CGFloat = 132
+
+    /// Hvor meget bredere den lukkede notch bliver af kortet: de to sider plus
+    /// de 10 pt det sorte midterfelt lægger oven i hullet.
+    static func ekstraBredde() -> CGFloat { 2 * sideBredde + 10 }
+
+    var body: some View {
+        let farve = jarvisClaudefarve(jarvis.claudeTilstand)
+        HStack(spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: jarvisClaudeikon(jarvis.claudeTilstand))
+                    .font(.system(size: 12))
+                    .foregroundStyle(farve)
+                Text(jarvisOrd(jarvis.claude?.ord)
+                     ?? NSLocalizedString("Claude is waiting for your answer",
+                                          comment: "Jarvis: Claude has stopped and needs an answer"))
+                    // 11 pt og HØJST to linjer: den lukkede notch er kun 32-38 pt
+                    // høj, og to linjer i 11 pt er 27 pt. Tre linjer ville vælte
+                    // ud over notchens eget klip.
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+            .frame(width: Self.sideBredde, alignment: .leading)
+
+            // Selve hullet i skærmen. Intet læsbart må stå her.
+            Rectangle()
+                .fill(.black)
+                .frame(width: max(0, vm.closedNotchSize.width + 10))
+
+            VStack(alignment: .trailing, spacing: 1) {
+                if let sidste = jarvisOrd(jarvis.claude?.sidsteOrd) {
+                    Text(sidste)
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.white.opacity(0.8))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                if let siden = jarvisOrd(jarvis.claude?.sidenOrd) {
+                    Text(siden)
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color.gray)
+                        .lineLimit(1)
+                }
+            }
+            .frame(width: Self.sideBredde, alignment: .trailing)
+        }
+        .frame(height: vm.effectiveClosedNotchHeight, alignment: .center)
     }
 }
 

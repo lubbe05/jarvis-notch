@@ -45,6 +45,16 @@ let openNotchSize: CGSize = .init(width: 640, height: 190)
 //        holder; kan de fem alligevel ikke være der, viser fanen fire eller
 //        tre (`venteListe`), og de ældste står stadig i Kommandocentret.
 //
+//     18/9, CLAUDE-RÆKKEN: venter Claude på et svar eller beder han om lov,
+//     står der en fast række øverst på fanen (24 pt + 8 pt mellemrum = 32), og
+//     så viser kortlisten FIRE rækker i stedet for fem (-26 pt). Regnestykket
+//     bliver 263 + 32 - 26 = 269 -> 13 pt luft. De to kort der ryger, er de
+//     ældste, og de står stadig i Kommandocentret.
+//     Forbrugsringen koster INTET: den står INDE i toplinjens 47 pt, mellem
+//     badgen og husets blok, og er selv 47 pt høj (ring 32 + 4 + strimmel 11).
+//     I bredden: badgen ~185 + 12 + ringblokken 136 + 12 + husets blok 320
+//     = 665 af de ~706 pt fanen har indvendigt.
+//
 // Regnestykket er aritmetik og ikke en måling på en skærm — der er ingen Mac i
 // huset. Derfor står der to VÆRN under det: `ContentView` top-justerer den åbne
 // flade, så et uheld kun kan vælte NEDAD, og hver af de to faner skruer selv ned

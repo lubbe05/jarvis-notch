@@ -10,6 +10,7 @@
 import AppKit
 import Defaults
 import Foundation
+import SwiftUI
 
 // MARK: - Svaret fra broen
 
@@ -115,6 +116,75 @@ struct JarvisSkriv: Codable, Hashable {
     var opgaveMaal: String?
 }
 
+/// Claudes forbrug af sit eget vindue — `claude.forbrug`.
+///
+/// Det ENESTE sted på hans skærme hvor der står et tal (husets regel fra 7/9 er
+/// ord, ikke tal). Lauritz' egen undtagelse 18/9: et forbrug er en procentdel,
+/// og «næsten opbrugt» er ikke det samme som 91. Resten står stadig i ord:
+/// `vindue_ord`, `uge_ord` og de to «nulstilles»-sætninger.
+///
+/// `kendt: false` betyder at huset ikke kunne læse forbruget — så står der
+/// «forbrug ukendt lige nu» i gråt, og der tegnes ingen ring med et gæt i.
+struct JarvisForbrug: Codable, Hashable {
+    var kendt: Bool?
+    /// 5-timers-vinduet, 0-100. Nil når huset ikke ved det.
+    var vinduePct: Int?
+    var vindueOrd: String?
+    /// Sekunder til vinduet nulstilles. Vi regner ikke på det; ordet er sandheden.
+    var vindueNulstilles: Int?
+    var vindueNulstillesOrd: String?
+    var ugePct: Int?
+    var ugeOrd: String?
+    var ugeNulstilles: Int?
+    var ugeNulstillesOrd: String?
+    /// Maskinfeltet der farver ringen: «ro», «advarsel», «fare». Aldrig sætningen.
+    var farve: String?
+    var hentetOrd: String?
+
+    /// Sandt kun når huset FAKTISK har læst forbruget. Mangler `kendt` helt
+    /// (en ældre bro), tæller det som ukendt — vi tegner ikke et gæt.
+    var erKendt: Bool { kendt == true }
+
+    /// Andelen af en ring eller en strimmel, klemt ind i 0-1 — så en ring aldrig
+    /// kan tegnes to gange rundt, hvad huset end sender. `CGFloat` og ikke
+    /// `Double`, fordi det er det SwiftUI's `trim` og `frame` regner i.
+    func andel(_ tal: Int?) -> CGFloat {
+        guard let tal = tal else { return 0 }
+        return CGFloat(min(100, max(0, tal))) / 100.0
+    }
+
+    /// Procenten som den står i ringen. Tankestreg når huset ikke ved det —
+    /// en tom ring med et 0 i midten ville være et gæt.
+    func pctTekst(_ tal: Int?) -> String {
+        guard let tal = tal else { return "–" }
+        return "\(min(100, max(0, tal)))%"
+    }
+}
+
+/// Claude — byggeren i terminalen. `claude`-blokken i husets svar.
+///
+/// Hele pointen er ét spørgsmål: **venter han på Lauritz?** Claude står stille
+/// indtil der er svaret, og et svar der først falder en time senere, er en time
+/// hvor ingen bygger noget. Derfor er «venter» og «tilladelse» det notchen
+/// fortæller om — og de øvrige tilstande er bare ord på en række.
+///
+/// Feltet kan MANGLE helt (en bro fra før 18/9). Så er tilstanden «ukendt», og
+/// der vises hverken række, pop-up eller ring.
+struct JarvisClaude: Codable, Hashable {
+    /// «venter», «arbejder», «tilladelse» eller «ukendt».
+    var tilstand: String?
+    /// Sandt når det er et rigtigt spørgsmål til ham og ikke blot en pause.
+    var spoerger: Bool?
+    var ord: String?
+    /// Det sidste Claude sagde, klippet af huset til 120 tegn.
+    var sidsteOrd: String?
+    /// Sekunder siden tilstanden sidst skiftede. Bruges KUN til at kende to
+    /// ventetider fra hinanden; ordet er det der står på skærmen.
+    var siden: Int?
+    var sidenOrd: String?
+    var forbrug: JarvisForbrug?
+}
+
 /// Hele svaret. Hvert felt afkodes for sig med `try?`, så et enkelt felt
 /// broen har ændret aldrig kan koste hele visningen.
 struct JarvisSvar: Codable {
@@ -128,11 +198,12 @@ struct JarvisSvar: Codable {
     var agenter: [JarvisAgent]?
     var links: JarvisLinks?
     var skriv: JarvisSkriv?
+    var claude: JarvisClaude?
     var mangler: [String]?
 
     enum CodingKeys: String, CodingKey {
         case version, hentet, venter, breve, huset, depot, labs, agenter, links,
-             skriv, mangler
+             skriv, claude, mangler
     }
 
     init() {}
@@ -149,6 +220,7 @@ struct JarvisSvar: Codable {
         agenter = try? beholder.decodeIfPresent([JarvisAgent].self, forKey: .agenter)
         links = try? beholder.decodeIfPresent(JarvisLinks.self, forKey: .links)
         skriv = try? beholder.decodeIfPresent(JarvisSkriv.self, forKey: .skriv)
+        claude = try? beholder.decodeIfPresent(JarvisClaude.self, forKey: .claude)
         mangler = try? beholder.decodeIfPresent([String].self, forKey: .mangler)
     }
 }
@@ -267,7 +339,7 @@ final class JarvisState: ObservableObject {
     // pollerens løkke var død — og de to ting kræver hver sin kur. Nu står
     // forskellen i ord i Indstillinger -> Jarvis:
     //
-    //   `sidstForsoegt` flytter sig hvert minut  -> løkken lever, vejen er væk
+    //   `sidstForsoegt` flytter sig hvert 20. sek -> løkken lever, vejen er væk
     //   `sidstForsoegt` står stille              -> løkken er død
     //
     // Se docs/notch-poll-2026-09-18.md.
@@ -278,6 +350,35 @@ final class JarvisState: ObservableObject {
     @Published var sidstFejlede: Date?
     /// Hvor mange forsøg der er gået galt i træk siden huset sidst blev hørt.
     @Published var fejlIStribe: Int = 0
+
+    // MARK: Claude — venter han på et svar?
+    //
+    // Claude bygger i en terminal, og han standser HELT når han spørger om lov
+    // eller om en afgørelse. Et svar der først falder en time senere, er en
+    // time hvor ingen bygger noget — og det er hele grunden til at notchen
+    // fortæller om det. Blokken kan mangle i et ældre bro-svar; så er
+    // tilstanden «ukendt», og der vises hverken række, pop-up eller ring.
+
+    /// `claude`-blokken som huset sidst sagde den. Nil = feltet kom ikke.
+    @Published var claude: JarvisClaude?
+    /// Sandt mens den lille pop-up står i den LUKKEDE notch (cirka fem sekunder).
+    @Published var claudePopup: Bool = false
+    /// Tælles op ved hver NY ventetid. Rækken på Jarvis-fanen pulser, når
+    /// tælleren er foran kvitteringen — altså når han ikke har set beskeden endnu.
+    @Published var claudePuls: Int = 0
+    /// Hvor langt rækken er nået med at kvittere. Står HER og ikke i visningen,
+    /// fordi fanen bygges fra ny hver gang han åbner notchen på den.
+    @Published var claudePulsKvitteret: Int = 0
+
+    /// Tilstanden ved forrige svar — «venter» -> «tilladelse» er en ny besked.
+    private var claudeSidsteTilstand: String = "ukendt"
+    /// Det øjeblik den nuværende ventetid begyndte, regnet af husets `siden`.
+    /// `siden` vokser for hvert kald, mens ankeret står stille — og netop derfor
+    /// kan vi kende én ny ventetid fra den samme igen, kald efter kald.
+    private var claudeAnker: Date?
+    /// Nøglen for den pop-up der står lige nu, så en gammel nedtælling ikke
+    /// lukker en ny pop-up.
+    private var claudePopupNoegle: String?
 
     private init() {}
 
@@ -293,7 +394,7 @@ final class JarvisState: ObservableObject {
     // MARK: Svarene han giver fra hakket
     //
     // De tre felter herunder lever HER og ikke i visningen, fordi visningen
-    // bygges om hvert minut når et nyt svar kommer ind — og en halvskrevet
+    // bygges om ved hvert nyt svar fra huset — og en halvskrevet
     // sætning eller en knap midt i et kald må ikke forsvinde under hænderne
     // på ham.
 
@@ -327,8 +428,32 @@ final class JarvisState: ObservableObject {
 
     var breveAntal: Int { max(0, svar?.breve?.antal ?? 0) }
 
+    // MARK: Claude i ord
+
+    /// Maskinfeltet i små bogstaver. «ukendt» når blokken mangler.
+    var claudeTilstand: String {
+        (claude?.tilstand ?? "ukendt").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    /// Står Claude stille og venter på ham? Kun de to tilstande er hans tur.
+    var claudeVenter: Bool { claudeTilstand == "venter" || claudeTilstand == "tilladelse" }
+
+    var claudeForbrug: JarvisForbrug? { claude?.forbrug }
+
+    /// Skal rækken bede om et blik? Sandt indtil rækken har kvitteret, så en
+    /// besked der blev misset mens notchen var lukket, stadig bliver set.
+    var claudeBoerPulse: Bool { claudeVenter && claudePuls > claudePulsKvitteret }
+
+    func kvitterClaudePuls() { claudePulsKvitteret = claudePuls }
+
     /// Lille mærke i den sammenfoldede notch: kun når huset faktisk venter på ham.
-    var visKompaktMaerke: Bool { erSlaaetTil && fejl == nil && venterAntal > 0 }
+    ///
+    /// 18/9: også når CLAUDE venter. Han står HELT stille indtil der er svaret,
+    /// så det er lige så meget «huset venter på dig» som et kort i køen — og
+    /// mærket er det eneste sted den lukkede notch kan sige det.
+    var visKompaktMaerke: Bool {
+        erSlaaetTil && fejl == nil && (venterAntal > 0 || claudeVenter)
+    }
 
     /// Linket der åbnes når han klikker på det seneste kort — ellers kommandocentret.
     var senesteLink: URL? {
@@ -379,6 +504,7 @@ final class JarvisState: ObservableObject {
         let stadigDer = Set((nyt.venter?.liste ?? []).compactMap { $0.id })
         besvaret = besvaret.filter { stadigDer.contains($0.key) }
         besvarer = besvarer.intersection(stadigDer)
+        opdaterClaude(nyt.claude)
     }
 
     func fejlede() {
@@ -386,7 +512,7 @@ final class JarvisState: ObservableObject {
         sidstFejlede = Date()
         fejlIStribe += 1
         // Sparsomt med vilje: de tre første, og derefter en halv time imellem.
-        // En linje hvert minut i tre kvarter er ikke en log, det er tapet.
+        // En linje ved hvert kald i tre kvarter er ikke en log, det er tapet.
         if fejlIStribe <= 3 || fejlIStribe % 30 == 0 {
             NSLog("Jarvis: broen svarede ikke (\(fejlIStribe). gang i træk)")
         }
@@ -403,6 +529,13 @@ final class JarvisState: ObservableObject {
         besvarer = []
         besvaret = [:]
         kvittering = nil
+        claude = nil
+        claudePopup = false
+        claudePuls = 0
+        claudePulsKvitteret = 0
+        claudeSidsteTilstand = "ukendt"
+        claudeAnker = nil
+        claudePopupNoegle = nil
     }
 
     /// Kvitteringen nederst — ét kort øjeblik, så den ikke bliver tapet.
@@ -412,6 +545,71 @@ final class JarvisState: ObservableObject {
         Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(12))
             if self?.kvittering == mit { self?.kvittering = nil }
+        }
+    }
+
+    // MARK: - Claude: er dette en NY ventetid?
+
+    /// Kaldes ved hvert svar. Den svære del er ikke at vise en pop-up, men at
+    /// vide om beskeden er NY: huset sender den samme ventetid igen hvert 20.
+    /// sekund, så længe han ikke har svaret, og en pop-up der kommer tre gange
+    /// i minuttet er ikke en besked, det er en alarm han slår fra.
+    ///
+    /// Tre ting gør en ventetid ny — og kun dem:
+    ///   1. Claude ventede ikke ved forrige svar.
+    ///   2. Tilstanden skiftede («venter» -> «tilladelse» er et nyt spørgsmål).
+    ///   3. Ankeret rykkede mere end halvandet minut fremad, altså `siden`
+    ///      sprang tilbage: et NYT spørgsmål, mens det forrige stod ubesvaret.
+    private func opdaterClaude(_ nyt: JarvisClaude?) {
+        claude = nyt
+        let tilstand = (nyt?.tilstand ?? "ukendt")
+            .trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let venter = (tilstand == "venter" || tilstand == "tilladelse")
+        let forrige = claudeSidsteTilstand
+        claudeSidsteTilstand = tilstand
+
+        guard venter else {
+            // Han har svaret (eller Claude gik videre selv). Så skal både
+            // pop-uppen og hukommelsen om ventetiden væk, ellers er den NÆSTE
+            // besked ikke ny.
+            claudeAnker = nil
+            claudePopupNoegle = nil
+            claudePuls = 0
+            claudePulsKvitteret = 0
+            if claudePopup {
+                withAnimation(.smooth(duration: 0.25)) { claudePopup = false }
+            }
+            return
+        }
+
+        let anker = Date().addingTimeInterval(-Double(max(0, nyt?.siden ?? 0)))
+        var nyVentetid = (claudeAnker == nil) || (tilstand != forrige)
+        if !nyVentetid, let gammel = claudeAnker, anker.timeIntervalSince(gammel) > 90 {
+            nyVentetid = true
+        }
+        guard nyVentetid else { return }
+
+        claudeAnker = anker
+        // Rækken skal bede om et blik, uanset om pop-uppen kommer: er notchen
+        // åben lige nu, er pop-uppen ikke engang tegnet.
+        claudePuls += 1
+
+        // Pop-up kun når det ER hans tur. En tilladelse spørger altid — også
+        // hvis huset ikke fik sat flaget.
+        guard tilstand == "tilladelse" || nyt?.spoerger == true else { return }
+        visClaudePopup(noegle: tilstand + "|" + String(Int(anker.timeIntervalSince1970)))
+    }
+
+    /// Den lille pop-up i den lukkede notch. Samme mønster som `visKvittering`:
+    /// en Task der lukker den igen, og nøglen afgør at det er DEN pop-up der
+    /// lukkes og ikke en nyere.
+    private func visClaudePopup(noegle: String) {
+        claudePopupNoegle = noegle
+        withAnimation(.smooth(duration: 0.25)) { claudePopup = true }
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(5))
+            guard let self = self, self.claudePopupNoegle == noegle, self.claudePopup else { return }
+            withAnimation(.smooth(duration: 0.25)) { self.claudePopup = false }
         }
     }
 
@@ -466,6 +664,40 @@ final class JarvisState: ObservableObject {
     private func aabnWeb(_ link: URL?) {
         guard let link = link else { return }
         NSWorkspace.shared.open(link)
+    }
+
+    /// «Åbn» på Claude-rækken.
+    ///
+    /// VALGET (18/9): Claude kører i en terminal inde i VS Code, og der er
+    /// INTET URL-skema der kan pege på en bestemt samtale. Vi løfter derfor
+    /// appen frem med præcis samme tre trin som `loeftFrem` bruger til
+    /// Jarvis-appen — `unhide()`, `yieldActivation` + `activate`, og et «åbn» på
+    /// processens egen bundle, fordi en editor kan køre videre uden vinduer.
+    /// Bundle-id'et er slået op hos systemet (`urlForApplication`); vi kalder
+    /// ALDRIG `open -b` gennem en shell, for så skulle notchen have lov til at
+    /// starte processer, og det skal den ikke have for en knaps skyld.
+    ///
+    /// Er VS Code ikke på maskinen, falder vi tilbage til husets egen dør, så
+    /// klikket aldrig dør i stilhed.
+    func aabnClaude() {
+        let bundleId = "com.microsoft.VSCode"
+        let redning = kommandocenterLink
+        if let app = NSWorkspace.shared.runningApplications.first(where: {
+            $0.bundleIdentifier == bundleId
+        }) {
+            loeftFrem(app, redning: redning)
+            return
+        }
+        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else {
+            aabn(redning)
+            return
+        }
+        let opsaetning = NSWorkspace.OpenConfiguration()
+        opsaetning.activates = true
+        NSWorkspace.shared.openApplication(at: appURL, configuration: opsaetning) { [weak self] _, fejl in
+            guard fejl != nil else { return }
+            Task { @MainActor in self?.aabn(redning) }
+        }
     }
 
     /// Løfter en app der ALLEREDE kører frem.
