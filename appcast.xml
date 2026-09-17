@@ -8,25 +8,25 @@
     <description>Husets egne byg af boringNotch med Jarvis-fanen.</description>
     <language>da</language>
     <item>
-      <title>boringNotch med Jarvis — 16/9-2026</title>
-      <pubDate>Wed, 16 Sep 2026 22:04:23 +0000</pubDate>
-      <sparkle:version>1292</sparkle:version>
+      <title>boringNotch med Jarvis — 17/9-2026</title>
+      <pubDate>Thu, 17 Sep 2026 23:21:17 +0000</pubDate>
+      <sparkle:version>1295</sparkle:version>
       <sparkle:shortVersionString>2.7.3</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <link>https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260916-06bf4f1</link>
+      <link>https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260917-739bdb5</link>
       <description>boringNotch med Jarvis-fanen, bygget hos GitHub på en Mac.
 
-- dato: 16/9-2026
-- commit: `06bf4f1b6a6bffb838b8d77c237e85e7bbc217a9`
+- dato: 17/9-2026
+- commit: `739bdb543d517f0d28cde5bc0a4dbefb898db974`
 - gren: jarvis
-- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35155427375
+- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35286203079
 
 ## Hent
 
-- **boringNotch-jarvis-06bf4f1.dmg** — dobbeltklik og træk **boringNotch** over i **Programmer**.
-- **boringNotch-jarvis-06bf4f1.zip** — pak ud og træk **boringNotch.app** til **/Programmer**. Virker altid.
+- **boringNotch-jarvis-739bdb5.dmg** — dobbeltklik og træk **boringNotch** over i **Programmer**.
+- **boringNotch-jarvis-739bdb5.zip** — pak ud og træk **boringNotch.app** til **/Programmer**. Virker altid.
 
-- signering: ad hoc
+- signering: certifikatet «Jarvis Notch»
 
 **Første gang advarer macOS**, fordi appen ikke er signeret med en Apple-udviklerkonto.
 Højreklik på appen → **Åbn** → **Åbn**, eller i Terminal:
@@ -39,12 +39,13 @@ Resten af trinnene (tilladelser, login, Jarvis-adressen) står i `JARVIS-OPSKRIF
 
 ## Hvad er nyt
 
-- Aktier-fanen gaar ikke op af skaermen mere: toppen staar fast, og hoejderne er regnet efter indholdet</description>
+- Signeringstrinnet: variabelnavn afgraenset foer guillemet
+- Bygget stoler paa husets eget certifikat foer det leder efter identiteten</description>
       <enclosure
-        url="https://github.com/lubbe05/jarvis-notch/releases/download/jarvis-v20260916-06bf4f1/boringNotch-jarvis-06bf4f1.zip"
-        length="8157270"
+        url="https://github.com/lubbe05/jarvis-notch/releases/download/jarvis-v20260917-739bdb5/boringNotch-jarvis-739bdb5.zip"
+        length="8186719"
         type="application/octet-stream"
-        sparkle:edSignature="KjBdTLnaeDK9SmiQYN+qpvPjm2KSPiXeuMnf0/bvOXevy2uH9VD5h7bysC5jHgJPG1ZFzMh9Ilk1V/REbzB6DQ==" />
+        sparkle:edSignature="Ev08SEBHaTYmVf+ySLOUP6xZBk4WcQFmx02xesIrpMkZjIrikS0EYzHWVFaj3CKZW4rsMIpbNF3B1z8wLGMfDA==" />
     </item>
   </channel>
 </rss>
