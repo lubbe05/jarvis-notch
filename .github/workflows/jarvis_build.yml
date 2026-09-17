@@ -202,14 +202,41 @@ jobs:
                   "$HOME/Library/Keychains/login.keychain-db"
           security default-keychain -s "$KEYCHAIN"
 
-          echo "== identiteter i nøgleringen =="
+          # Et SELVSIGNERET certifikat er ikke «gyldigt» i macOS' øjne, før
+          # maskinen stoler på det: `find-identity -v` (kun gyldige) viste 0
+          # identiteter ved første forsøg 18/9 2026, selv om importen lykkedes.
+          # Derfor: træk certifikatet ud af p12'en og læg det som betroet
+          # rod til kodesignering. Runneren har sudo uden kodeord.
+          CRT="$RUNNER_TEMP/jarvis-notch-cert.pem"
+          if openssl pkcs12 -in "$P12" -clcerts -nokeys -passin env:CERT_PASSWORD -out "$CRT" 2>/dev/null \
+             || openssl pkcs12 -legacy -in "$P12" -clcerts -nokeys -passin env:CERT_PASSWORD -out "$CRT" 2>/dev/null; then
+            sudo security add-trusted-cert -d -r trustRoot -p codeSign -k "$KEYCHAIN" "$CRT" \
+              || security add-trusted-cert -r trustRoot -p codeSign -k "$KEYCHAIN" "$CRT" \
+              || echo "add-trusted-cert fejlede — prøver alligevel"
+          else
+            echo "kunne ikke trække certifikatet ud af p12'en — prøver alligevel"
+          fi
+          rm -f "$CRT"
+
+          echo "== identiteter i nøgleringen (gyldige) =="
           security find-identity -v -p codesigning "$KEYCHAIN" || true
+          echo "== identiteter i nøgleringen (alle) =="
+          security find-identity -p codesigning "$KEYCHAIN" || true
           if security find-identity -v -p codesigning "$KEYCHAIN" | grep -q "Jarvis Notch"; then
             IDENT="Jarvis Notch"
             echo "SIGN_NAVN=certifikatet «Jarvis Notch»" >> "$GITHUB_ENV"
           else
-            echo "«Jarvis Notch» står ikke som en codesigning-identitet — ad hoc."
-            echo "SIGN_NAVN=ad hoc (identiteten blev ikke fundet)" >> "$GITHUB_ENV"
+            # Ikke gyldig, men måske til stede: så signeres der på hash'en.
+            # codesign advarer («unable to build chain to self-signed root»)
+            # men signerer — og det er identiteten, ikke tilliden, TCC husker.
+            HASH="$(security find-identity -p codesigning "$KEYCHAIN" | grep "Jarvis Notch" | head -1 | awk '{print $2}')"
+            if [ -n "$HASH" ]; then
+              IDENT="$HASH"
+              echo "SIGN_NAVN=certifikatet «Jarvis Notch» (ubetroet, signeret på hash)" >> "$GITHUB_ENV"
+            else
+              echo "«Jarvis Notch» står ikke som en codesigning-identitet — ad hoc."
+              echo "SIGN_NAVN=ad hoc (identiteten blev ikke fundet i nøgleringen)" >> "$GITHUB_ENV"
+            fi
           fi
           echo "SIGN_IDENT=$IDENT" >> "$GITHUB_ENV"
           echo "SIGN_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
