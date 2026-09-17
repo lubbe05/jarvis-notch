@@ -230,6 +230,20 @@ func jarvisValgtKoerendeApp() -> NSRunningApplication? {
         }
 }
 
+// MARK: - «for 12 sekunder siden»
+
+/// Et tidspunkt i ord, som systemet selv staver det — så linjen står på dansk på
+/// en dansk Mac uden at vi bøjer noget selv. Nil når det aldrig er sket.
+///
+/// `nu` gives med udefra, så en visning kan tikke linjen frem hvert femte
+/// sekund uden at bygge en ny formatter for hvert tik.
+func jarvisForLaengeSiden(_ tid: Date?, nu: Date = Date()) -> String? {
+    guard let tid = tid else { return nil }
+    let ord = RelativeDateTimeFormatter()
+    ord.unitsStyle = .full
+    return ord.localizedString(for: tid, relativeTo: nu)
+}
+
 // MARK: - Tilstanden i appen
 
 @MainActor
@@ -244,6 +258,26 @@ final class JarvisState: ObservableObject {
     @Published var fejl: String?
     /// Sandt mens et kald er undervejs.
     @Published var henter: Bool = false
+
+    // MARK: Lever løkken?
+    //
+    // De tre felter herunder er hele lærepengen fra 17/9 10:32-11:19, hvor der
+    // stod «Jarvis er ikke at nå» i tre kvarter, mens broen svarede alle andre
+    // normalt. Vi kunne ikke se om notchen spurgte og ikke fik svar, eller om
+    // pollerens løkke var død — og de to ting kræver hver sin kur. Nu står
+    // forskellen i ord i Indstillinger -> Jarvis:
+    //
+    //   `sidstForsoegt` flytter sig hvert minut  -> løkken lever, vejen er væk
+    //   `sidstForsoegt` står stille              -> løkken er død
+    //
+    // Se docs/notch-poll-2026-09-18.md.
+
+    /// Hvornår notchen sidst PRØVEDE at spørge — også når forsøget gik galt.
+    @Published var sidstForsoegt: Date?
+    /// Hvornår et forsøg sidst gik galt.
+    @Published var sidstFejlede: Date?
+    /// Hvor mange forsøg der er gået galt i træk siden huset sidst blev hørt.
+    @Published var fejlIStribe: Int = 0
 
     private init() {}
 
@@ -331,9 +365,15 @@ final class JarvisState: ObservableObject {
     }
 
     func modtog(_ nyt: JarvisSvar) {
+        // Den ene linje der gør et comeback læseligt i Console bagefter. Den
+        // står kun når der FAKTISK var noget at komme tilbage fra.
+        if fejlIStribe > 0 {
+            NSLog("Jarvis: huset svarer igen efter \(fejlIStribe) mislykkede forsøg")
+        }
         svar = nyt
         sidst = Date()
         fejl = nil
+        fejlIStribe = 0
         // Kortet er dømt OG væk af husets svar: så skal ordet «Godkendt» også
         // væk, ellers står der en gammel kvittering på en ny liste.
         let stadigDer = Set((nyt.venter?.liste ?? []).compactMap { $0.id })
@@ -343,6 +383,13 @@ final class JarvisState: ObservableObject {
 
     func fejlede() {
         fejl = NSLocalizedString("Jarvis can't be reached", comment: "Quiet error line in the Jarvis view")
+        sidstFejlede = Date()
+        fejlIStribe += 1
+        // Sparsomt med vilje: de tre første, og derefter en halv time imellem.
+        // En linje hvert minut i tre kvarter er ikke en log, det er tapet.
+        if fejlIStribe <= 3 || fejlIStribe % 30 == 0 {
+            NSLog("Jarvis: broen svarede ikke (\(fejlIStribe). gang i træk)")
+        }
     }
 
     func nulstil() {
@@ -350,6 +397,9 @@ final class JarvisState: ObservableObject {
         sidst = nil
         fejl = nil
         henter = false
+        sidstForsoegt = nil
+        sidstFejlede = nil
+        fejlIStribe = 0
         besvarer = []
         besvaret = [:]
         kvittering = nil

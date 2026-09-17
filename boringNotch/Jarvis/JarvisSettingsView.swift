@@ -6,6 +6,14 @@
 //  fanerne og mærket er væk, og der hentes intet.
 //  Dertil: hvor et klik i notchen skal åbne — Jarvis-appen på Mac'en eller web-appen.
 //
+//  17/9 10:32-11:19 stod der «Jarvis er ikke at nå» i tre kvarter, mens broen
+//  svarede alle andre normalt. Vi kunne ikke se om notchen spurgte uden at få
+//  svar, eller om pollerens løkke var død — to ting med hver sin kur. Derfor
+//  står der nu et LIVSTEGN under «Test», i ord: hvornår huset sidst blev hørt,
+//  hvornår notchen sidst prøvede, og om forsøgene går galt i træk. Flytter
+//  «sidst prøvet» sig hvert minut, lever løkken og vejen er væk; står den
+//  stille, er løkken død. Se docs/notch-poll-2026-09-18.md.
+//
 //  Appen VÆLGES i en liste over det der kører lige nu, ikke ved at skrive et
 //  navn. Lauritz 16/9: hans Jarvis-app er en Flet-desktop-klient, hvis navn i
 //  systemet er «Flet» — kun vinduet hedder «Jarvis». Et navnefelt kan altså
@@ -13,6 +21,7 @@
 //  bundle-id'et, som følger processen.
 //
 
+import Combine
 import Defaults
 import SwiftUI
 
@@ -28,6 +37,14 @@ struct JarvisSettings: View {
     @State private var proeveSvar: String?
     @State private var koerendeApps: [JarvisKoerendeApp] = []
     @State private var valgtKoerer: Bool = false
+    /// Tidspunktet livstegnets linjer regnes fra. Flyttes af uret nedenfor, så
+    /// «for 12 sekunder siden» faktisk tikker mens han står og ser på det —
+    /// det er hele pointen: han skal kunne SE om løkken lever.
+    @State private var nu: Date = Date()
+
+    /// Uret. Ligger som en egenskab og ikke inde i `.onReceive`, så der ikke
+    /// bygges en ny udsender hver gang fladen tegnes om.
+    private let ur = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
 
     private var adresse: String {
         jarvisAdresse.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -56,6 +73,10 @@ struct JarvisSettings: View {
                             .foregroundColor(.secondary)
                     }
                     Spacer()
+                }
+
+                if !adresse.isEmpty {
+                    livstegn
                 }
             } header: {
                 HStack {
@@ -122,13 +143,62 @@ struct JarvisSettings: View {
                     .foregroundColor(.secondary)
             }
         }
-        .onAppear { opdaterListen() }
+        .onAppear {
+            opdaterListen()
+            nu = Date()
+        }
+        .onReceive(ur) { tid in
+            nu = tid
+        }
         .onChange(of: jarvisAabnI) { opdaterListen() }
         .onChange(of: jarvisAppNavn) { valgtKoerer = jarvisValgtAppKoerer }
         .onChange(of: jarvisAdresse) {
             proeveSvar = nil
             if adresse.isEmpty {
                 JarvisState.shared.nulstil()
+            }
+        }
+    }
+
+    // MARK: - Livstegnet: lever løkken?
+
+    /// Tre linjer i ord, ingen tal-koder, ingen fejlkoder (husets regel fra 7/9).
+    ///
+    /// Den MIDTERSTE er den vigtige og den nye: «Notchen spurgte sidst …».
+    /// Står der samtidig at huset ikke blev hørt, siger de to linjer tilsammen
+    /// hvad der er i vejen — og det var præcis den forskel der manglede 17/9.
+    @ViewBuilder
+    private var livstegn: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if let hoert = jarvisForLaengeSiden(jarvis.sidst, nu: nu) {
+                Text("Last heard from the house: \(hoert)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                Text("Last heard from the house: not yet")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            if let proevede = jarvisForLaengeSiden(jarvis.sidstForsoegt, nu: nu) {
+                Text("The notch last asked: \(proevede)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                // Løkken har ikke spurgt én gang siden appen startede. Det er
+                // ikke «huset er væk» — det er noget der er galt her.
+                Text("The notch has not asked yet")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
+
+            // Ingen optælling her: husets regel er ord og ikke tal på hans
+            // skærme. Tallet lever bagved i `fejlIStribe` og i Console-loggen,
+            // hvor det hører.
+            if jarvis.fejlIStribe > 0, let gik = jarvisForLaengeSiden(jarvis.sidstFejlede, nu: nu) {
+                Text("The attempt failed: \(gik)")
+                    .font(.caption)
+                    .foregroundColor(.orange)
             }
         }
     }

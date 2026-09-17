@@ -1,6 +1,116 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Last heard from the house: %@" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sidst hørt fra huset: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sidst hørt fra huset: %@"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sidst hørt fra huset: %@"
+          }
+        }
+      }
+    },
+    "Last heard from the house: not yet" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sidst hørt fra huset: ikke endnu"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sidst hørt fra huset: ikke endnu"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sidst hørt fra huset: ikke endnu"
+          }
+        }
+      }
+    },
+    "The notch last asked: %@" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notchen spurgte sidst: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notchen spurgte sidst: %@"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notchen spurgte sidst: %@"
+          }
+        }
+      }
+    },
+    "The notch has not asked yet" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notchen har ikke spurgt endnu"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notchen har ikke spurgt endnu"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notchen har ikke spurgt endnu"
+          }
+        }
+      }
+    },
+    "The attempt failed: %@" : {
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forsøget gik galt: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forsøget gik galt: %@"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forsøget gik galt: %@"
+          }
+        }
+      }
+    },
     "Approve" : {
       "localizations" : {
         "da" : {

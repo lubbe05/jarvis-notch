@@ -44,7 +44,13 @@ struct JarvisRamme<Indhold: View>: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
-            JarvisPoller.shared.start()
+            // `vaekOp()` og ikke `start()`: fanen bygges fra ny hver gang han
+            // åbner notchen på den (ContentView), så DETTE er øjeblikket hvor han
+            // kigger. Løkken rejses hvis den er død, og der spørges med det samme
+            // — men aldrig oftere end husets gulv på 30 sekunder tillader.
+            // 17/9: her stod `start()`, og `start()` kunne ikke rejse en død
+            // løkke, så et kig på fanen hjalp ingenting.
+            JarvisPoller.shared.vaekOp()
         }
     }
 
