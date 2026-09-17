@@ -439,7 +439,7 @@ jobs:
               echo "        beder om Accessibility igen. Sæt JARVIS_CERT_P12 og"
               echo "        JARVIS_CERT_PASSWORD — se JARVIS-OPSKRIFT.md."
             else
-              echo "SIGNERINGEN ER I ORDEN: alt er signeret med «$IDENT», og ingen"
+              echo "SIGNERINGEN ER I ORDEN: alt er signeret med «${IDENT}», og ingen"
               echo "indlejret del har et team-id. Appens krav er nu identiteten og ikke"
               echo "dens bytes, så TCC husker Accessibility på tværs af opdateringer."
             fi
