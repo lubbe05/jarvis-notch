@@ -1,17 +1,17 @@
 # Seneste byg — GRØN — appen blev bygget
 
-- dato: 2026-09-17 23:54 UTC
+- dato: 2026-09-18 23:46 UTC
 - gren: jarvis
-- sha: 87b1f31843022257a0135d2896d27590f5962845
-- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35288623496
-- artifact: boringNotch-jarvis-87b1f31 (zip, og dmg hvis den lykkedes)
+- sha: 767956bd18deb89b4c7a72eb31a2826f8590e5c0
+- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35406762948
+- artifact: boringNotch-jarvis-767956b (zip, og dmg hvis den lykkedes)
 - signering: OK — alt signeret med certifikatet «Jarvis Notch», ingen indlejret del har et team-id
-- udgivelse: jarvis-v20260917-87b1f31 — https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260917-87b1f31
+- udgivelse: jarvis-v20260918-767956b — https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260918-767956b
 
 ## Fejl og advarsler (de første 200 linjer)
 
 ```
-2026-09-17 23:52:30.113 appintentsmetadataprocessor[22170:64177] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2026-09-18 23:44:29.190 appintentsmetadataprocessor[4749:18741] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/components/Shelf/Services/ThumbnailService.swift:17:17: warning: conformance of 'NSImage' to 'Sendable' is unavailable; this is an error in the Swift 6 language mode
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/components/Shelf/Services/ThumbnailService.swift:30:34: warning: conformance of 'NSImage' to 'Sendable' is unavailable; this is an error in the Swift 6 language mode
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/components/Shelf/Services/ThumbnailService.swift:33:20: warning: conformance of 'NSImage' to 'Sendable' is unavailable; this is an error in the Swift 6 language mode
@@ -71,7 +71,7 @@
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/XPCHelperClient/XPCHelperClient.swift:232:43: warning: type 'RemoteXPCService<any BoringNotchXPCHelperProtocol>' does not conform to the 'Sendable' protocol; this is an error in the Swift 6 language mode
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/XPCHelperClient/XPCHelperClient.swift:233:17: warning: capture of 'self' with non-sendable type 'XPCHelperClient' in a '@Sendable' closure; this is an error in the Swift 6 language mode
 /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/extensions/NSItemProvider+LoadHelpers.swift:44:21: warning: capture of 'self' with non-sendable type 'NSItemProvider' in a '@Sendable' closure
-2026-09-17 23:53:53.001 appintentsmetadataprocessor[25236:72757] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2026-09-18 23:45:38.476 appintentsmetadataprocessor[7234:25593] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 ```
 
 ## Signeringen (ad hoc) og team-id-tjekket
@@ -127,20 +127,20 @@
 == 4. codesign --verify --deep --strict ==
 --prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/XPCServices/BoringNotchXPCHelper.xpc
 --validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/XPCServices/BoringNotchXPCHelper.xpc
+--prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/MediaRemoteAdapter.framework/Versions/Current/.
+--validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/MediaRemoteAdapter.framework/Versions/Current/.
 --prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/.
---prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Updater.app
+--prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Lottie.framework/Versions/Current/.
+--validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Lottie.framework/Versions/Current/.
 --prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Autoupdate
 --validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Autoupdate
---validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Updater.app
+--prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Updater.app
 --prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Downloader.xpc
+--validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/Updater.app
 --validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Downloader.xpc
 --prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Installer.xpc
 --validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/XPCServices/Installer.xpc
 --validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework/Versions/Current/.
---prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/MediaRemoteAdapter.framework/Versions/Current/.
---validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/MediaRemoteAdapter.framework/Versions/Current/.
---prepared:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Lottie.framework/Versions/Current/.
---validated:/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Lottie.framework/Versions/Current/.
 /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app: valid on disk
 /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app: satisfies its Designated Requirement
    resultat: OK
@@ -165,7 +165,7 @@
    OK   Contents/Resources/MediaRemoteAdapterTestClient  ->  TeamIdentifier=not set
         CodeDirectory v=20400 size=789 flags=0x0(none) hashes=19+2 location=embedded
    OK   Contents/MacOS/boringNotch  ->  TeamIdentifier=not set
-        CodeDirectory v=20400 size=94834 flags=0x0(none) hashes=2953+7 location=embedded
+        CodeDirectory v=20400 size=95154 flags=0x0(none) hashes=2963+7 location=embedded
    OK   Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc  ->  TeamIdentifier=not set
         CodeDirectory v=20400 size=1054 flags=0x0(none) hashes=22+7 location=embedded
    OK   Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc  ->  TeamIdentifier=not set
@@ -185,13 +185,13 @@
    OK   Contents/Resources/Defaults_Defaults.bundle  ->  TeamIdentifier=not set
         CodeDirectory v=20100 size=204 flags=0x0(none) hashes=1+3 location=embedded
    OK   boringNotch.app  ->  TeamIdentifier=not set
-        CodeDirectory v=20400 size=94834 flags=0x0(none) hashes=2953+7 location=embedded
+        CodeDirectory v=20400 size=95154 flags=0x0(none) hashes=2963+7 location=embedded
 
 == 6. de tre, Lauritz' fejlbesked handlede om ==
 --- boringNotch.app
 Identifier=theboringteam.boringnotch
 Format=app bundle with Mach-O thin (arm64)
-CodeDirectory v=20400 size=94834 flags=0x0(none) hashes=2953+7 location=embedded
+CodeDirectory v=20400 size=95154 flags=0x0(none) hashes=2963+7 location=embedded
 Signature size=1726
 Authority=Jarvis Notch
 TeamIdentifier=not set
@@ -228,33 +228,33 @@ dens bytes, så TCC husker Accessibility på tværs af opdateringer.
 Executable=/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/MacOS/boringNotch
 Identifier=theboringteam.boringnotch
 Format=app bundle with Mach-O thin (arm64)
-CodeDirectory v=20400 size=94834 flags=0x0(none) hashes=2953+7 location=embedded
+CodeDirectory v=20400 size=95154 flags=0x0(none) hashes=2963+7 location=embedded
 Signature size=1726
 Authority=Jarvis Notch
-Signed Time=Sep 17, 2026 at 11:53:58 PM
+Signed Time=Sep 18, 2026 at 11:45:49 PM
 Info.plist entries=35
 TeamIdentifier=not set
 Sealed Resources version=2 rules=13 files=55
 Internal requirements count=1 size=104
 Using badge icon for DMG volume.
-Creating DMG via dmgbuild: app=/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app output=/Users/runner/work/_temp/ud/boringNotch-jarvis-87b1f31.dmg volume=boringNotch Jarvis
-total 35776
-drwxr-xr-x   4 runner  staff       128 Sep 17 23:54 .
-drwxr-xr-x  23 runner  staff       736 Sep 17 23:54 ..
--rw-r--r--@  1 runner  staff  10051085 Sep 17 23:54 boringNotch-jarvis-87b1f31.dmg
--rw-r--r--   1 runner  staff   8264012 Sep 17 23:54 boringNotch-jarvis-87b1f31.zip
+Creating DMG via dmgbuild: app=/Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app output=/Users/runner/work/_temp/ud/boringNotch-jarvis-767956b.dmg volume=boringNotch Jarvis
+total 35816
+drwxr-xr-x   4 runner  staff       128 Sep 18 23:46 .
+drwxr-xr-x  23 runner  staff       736 Sep 18 23:45 ..
+-rw-r--r--@  1 runner  staff  10060398 Sep 18 23:46 boringNotch-jarvis-767956b.dmg
+-rw-r--r--   1 runner  staff   8270566 Sep 18 23:45 boringNotch-jarvis-767956b.zip
 ```
 
 ## Udgivelsen (Release) og de vedhæftede filer
 
 ```
-https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260917-87b1f31
+https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260918-767956b
 
-== udgivelsen jarvis-v20260917-87b1f31 ==
-https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260917-87b1f31
+== udgivelsen jarvis-v20260918-767956b ==
+https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260918-767956b
 == vedhæftede filer ==
-boringNotch-jarvis-87b1f31.dmg  10051085 bytes
-boringNotch-jarvis-87b1f31.zip  8264012 bytes
+boringNotch-jarvis-767956b.dmg  10060398 bytes
+boringNotch-jarvis-767956b.zip  8270566 bytes
 ```
 
 ## Slutningen af loggen (sidste 80 linjer)
@@ -283,15 +283,15 @@ ProcessInfoPlistFile /Users/runner/work/_temp/dd/Build/Products/Release/boringNo
     cd /Users/runner/work/jarvis-notch/jarvis-notch
     builtin-infoPlistUtility /Users/runner/work/jarvis-notch/jarvis-notch/boringNotch/Info.plist -producttype com.apple.product-type.application -genpkginfo /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/PkgInfo -expandbuildsettings -platform macosx -additionalcontentfile /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/assetcatalog_generated_info.plist -scanforprivacyfile /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Lottie.framework -scanforprivacyfile /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/MediaRemoteAdapter.framework -scanforprivacyfile /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks/Sparkle.framework -scanforprivacyfile /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Resources/Defaults_Defaults.bundle -scanforprivacyfile /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Resources/KeyboardShortcuts_KeyboardShortcuts.bundle -scanforprivacyfile /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/XPCServices/BoringNotchXPCHelper.xpc -o /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Info.plist
 
-ExtractAppIntentsMetadata (in target 'boringNotch' from project 'boringNotch')
-    cd /Users/runner/work/jarvis-notch/jarvis-notch
-    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name boringNotch --sdk-root /Applications/Xcode_16.4.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk --xcode-version 16F6 --platform-family macOS --deployment-target 14.0 --bundle-identifier theboringteam.boringnotch --output /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Resources --target-triple arm64-apple-macos14.0 --binary-file /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/MacOS/boringNotch --dependency-file /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/boringNotch_dependency_info.dat --stringsdata-file /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/boringNotch.SwiftFileList --metadata-file-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/boringNotch.DependencyMetadataFileList --static-metadata-file-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/boringNotch.DependencyStaticMetadataFileList --swift-const-vals-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/boringNotch.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
-2026-09-17 23:53:52.997 appintentsmetadataprocessor[25236:72757] Starting appintentsmetadataprocessor export
-2026-09-17 23:53:53.001 appintentsmetadataprocessor[25236:72757] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
-
 CopySwiftLibs /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app (in target 'boringNotch' from project 'boringNotch')
     cd /Users/runner/work/jarvis-notch/jarvis-notch
     builtin-swiftStdLibTool --copy --verbose --sign - --scan-executable /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/MacOS/boringNotch --scan-folder /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks --scan-folder /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/PlugIns --scan-folder /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Library/SystemExtensions --scan-folder /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Extensions --scan-folder /Users/runner/work/jarvis-notch/jarvis-notch/mediaremote-adapter/MediaRemoteAdapter.framework --platform macosx --toolchain /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+
+ExtractAppIntentsMetadata (in target 'boringNotch' from project 'boringNotch')
+    cd /Users/runner/work/jarvis-notch/jarvis-notch
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name boringNotch --sdk-root /Applications/Xcode_16.4.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk --xcode-version 16F6 --platform-family macOS --deployment-target 14.0 --bundle-identifier theboringteam.boringnotch --output /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/Resources --target-triple arm64-apple-macos14.0 --binary-file /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/MacOS/boringNotch --dependency-file /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/boringNotch_dependency_info.dat --stringsdata-file /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/boringNotch.SwiftFileList --metadata-file-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/boringNotch.DependencyMetadataFileList --static-metadata-file-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/boringNotch.DependencyStaticMetadataFileList --swift-const-vals-list /Users/runner/work/_temp/dd/Build/Intermediates.noindex/boringNotch.build/Release/boringNotch.build/Objects-normal/arm64/boringNotch.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2026-09-18 23:45:38.465 appintentsmetadataprocessor[7234:25593] Starting appintentsmetadataprocessor export
+2026-09-18 23:45:38.476 appintentsmetadataprocessor[7234:25593] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 
 GenerateDSYMFile /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app.dSYM /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app/Contents/MacOS/boringNotch (in target 'boringNotch' from project 'boringNotch')
     cd /Users/runner/work/jarvis-notch/jarvis-notch
@@ -312,18 +312,18 @@ Validate /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app (in 
     cd /Users/runner/work/jarvis-notch/jarvis-notch
     builtin-validationUtility /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app -no-validate-extension -infoplist-subpath Contents/Info.plist
 
-Touch /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app (in target 'boringNotch' from project 'boringNotch')
-    cd /Users/runner/work/jarvis-notch/jarvis-notch
-    /usr/bin/touch -c /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app
-
 RegisterWithLaunchServices /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app (in target 'boringNotch' from project 'boringNotch')
     cd /Users/runner/work/jarvis-notch/jarvis-notch
     /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -f -R -trusted /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app
 
-note: Disabling previews because SWIFT_VERSION is set and SWIFT_OPTIMIZATION_LEVEL=-Owholemodule, expected -Onone (in target 'SkyLightWindow' from project 'SkyLightWindow')
+Touch /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app (in target 'boringNotch' from project 'boringNotch')
+    cd /Users/runner/work/jarvis-notch/jarvis-notch
+    /usr/bin/touch -c /Users/runner/work/_temp/dd/Build/Products/Release/boringNotch.app
+
 note: Disabling previews because SWIFT_VERSION is set and SWIFT_OPTIMIZATION_LEVEL=-Owholemodule, expected -Onone (in target '_RopeModule' from project 'swift-collections')
 note: Disabling previews because SWIFT_VERSION is set and SWIFT_OPTIMIZATION_LEVEL=-Owholemodule, expected -Onone (in target '_LottieStub' from project 'Lottie')
 note: Disabling previews because SWIFT_VERSION is set and SWIFT_OPTIMIZATION_LEVEL=-Owholemodule, expected -Onone (in target 'SwiftUIIntrospect' from project 'swiftui-introspect')
+note: Disabling previews because SWIFT_VERSION is set and SWIFT_OPTIMIZATION_LEVEL=-Owholemodule, expected -Onone (in target 'SkyLightWindow' from project 'SkyLightWindow')
 note: Disabling previews because SWIFT_VERSION is set and SWIFT_OPTIMIZATION_LEVEL=-Owholemodule, expected -Onone (in target 'OrderedCollections' from project 'swift-collections')
 note: Disabling previews because SWIFT_VERSION is set and SWIFT_OPTIMIZATION_LEVEL=-Owholemodule, expected -Onone (in target 'MacroVisionKit' from project 'MacroVisionKit')
 note: Disabling previews because SWIFT_VERSION is set and SWIFT_OPTIMIZATION_LEVEL=-Owholemodule, expected -Onone (in target 'LaunchAtLogin' from project 'LaunchAtLogin')
