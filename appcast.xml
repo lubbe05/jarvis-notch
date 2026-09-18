@@ -9,22 +9,22 @@
     <language>da</language>
     <item>
       <title>boringNotch med Jarvis — 17/9-2026</title>
-      <pubDate>Thu, 17 Sep 2026 23:30:33 +0000</pubDate>
-      <sparkle:version>1296</sparkle:version>
+      <pubDate>Thu, 17 Sep 2026 23:54:26 +0000</pubDate>
+      <sparkle:version>1297</sparkle:version>
       <sparkle:shortVersionString>2.7.3</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-      <link>https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260917-9fae5ce</link>
+      <link>https://github.com/lubbe05/jarvis-notch/releases/tag/jarvis-v20260917-87b1f31</link>
       <description>boringNotch med Jarvis-fanen, bygget hos GitHub på en Mac.
 
 - dato: 17/9-2026
-- commit: `9fae5ce5c483f93fd56ce53f6f47f20fcf59af88`
+- commit: `87b1f31843022257a0135d2896d27590f5962845`
 - gren: jarvis
-- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35286855252
+- kørsel: https://github.com/lubbe05/jarvis-notch/actions/runs/35288623496
 
 ## Hent
 
-- **boringNotch-jarvis-9fae5ce.dmg** — dobbeltklik og træk **boringNotch** over i **Programmer**.
-- **boringNotch-jarvis-9fae5ce.zip** — pak ud og træk **boringNotch.app** til **/Programmer**. Virker altid.
+- **boringNotch-jarvis-87b1f31.dmg** — dobbeltklik og træk **boringNotch** over i **Programmer**.
+- **boringNotch-jarvis-87b1f31.zip** — pak ud og træk **boringNotch.app** til **/Programmer**. Virker altid.
 
 - signering: certifikatet «Jarvis Notch»
 
@@ -39,12 +39,12 @@ Resten af trinnene (tilladelser, login, Jarvis-adressen) står i `JARVIS-OPSKRIF
 
 ## Hvad er nyt
 
-- Polleren rejser sig igen efter soevn og efter en doed loekke</description>
+- Claude i notchen: forbrugsring, ugestrimmel og «Claude venter paa dit svar»</description>
       <enclosure
-        url="https://github.com/lubbe05/jarvis-notch/releases/download/jarvis-v20260917-9fae5ce/boringNotch-jarvis-9fae5ce.zip"
-        length="8197901"
+        url="https://github.com/lubbe05/jarvis-notch/releases/download/jarvis-v20260917-87b1f31/boringNotch-jarvis-87b1f31.zip"
+        length="8264012"
         type="application/octet-stream"
-        sparkle:edSignature="XNM/ySyicOGmuLP/Kf5K9jyv3PWvcc6YCuUtxfBfC6+NwDsIzfjw/bNVfQHC4JUhkmV69RpxPajASEbqutl2Cg==" />
+        sparkle:edSignature="TrX03226NCRUuqtfz0Vl4QYJmaihJS3/o6XUWTsg0siGEOAz08tQu8QTrOhiXpasc6NhmzTR3zI35g02Bz+jBw==" />
     </item>
   </channel>
 </rss>
