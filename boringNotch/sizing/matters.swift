@@ -55,6 +55,22 @@ let openNotchSize: CGSize = .init(width: 640, height: 190)
 //     I bredden: badgen ~185 + 12 + ringblokken 136 + 12 + husets blok 320
 //     = 665 af de ~706 pt fanen har indvendigt.
 //
+//     19/9, CLAUDES STILLE LINJE i forbrugsblokken koster også NUL — og det er
+//     grunden til at den blev bygget netop dér:
+//       * er forbruget UKENDT, tager linjen pladsen fra sætningen «forbrug
+//         ukendt lige nu», som stod der i forvejen. 26 pt ring, uændret.
+//       * er forbruget KENDT, står linjen OVER «nulstilles»-sætningen i samme
+//         søjle ved siden af ringen: 9 pt + 2 + 9 pt giver 24 pt tekst i en
+//         række ringen allerede gør 32 pt høj. Blokken er stadig 32 + 4 + 11
+//         = 47 pt, altså toplinjens egen højde, og stadig 136 pt bred.
+//         Prisen betales i «nulstilles»-sætningen: to linjer bliver til én
+//         klippet — den står hel i blokkens `.help()`.
+//     En ekstra linje UNDER strimlen ville have kostet 4 + 11 = 15 pt af de
+//     19 pt luft. Det ville have holdt (linjen vises kun når Claude-rækken
+//     IKKE står, så de to priser kan aldrig lægges sammen), men 4 pt luft
+//     tilbage på et regnestykke uden en skærm at måle på er ikke en pris værd
+//     at betale for det samme ord.
+//
 // Regnestykket er aritmetik og ikke en måling på en skærm — der er ingen Mac i
 // huset. Derfor står der to VÆRN under det: `ContentView` top-justerer den åbne
 // flade, så et uheld kun kan vælte NEDAD, og hver af de to faner skruer selv ned

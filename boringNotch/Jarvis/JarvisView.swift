@@ -229,21 +229,45 @@ struct JarvisView: View {
     /// Farven er `forbrug.farve` — maskinfeltet, aldrig sætningen. Er forbruget
     /// ukendt, står der en grå tom ring og husets ord for det; vi tegner ikke
     /// et gæt som om det var målt.
+    ///
+    /// 19/9, Lauritz: «der står ikke noget med dig i notchen». Claude stod kun
+    /// på skærmen når han VENTEDE; arbejdede han, stod der intet, og blokken her
+    /// sagde bare «forbrug ukendt lige nu». Derfor bærer blokken nu også Claudes
+    /// eget ord om sig selv (`claudeStilleLinje`):
+    ///   * er forbruget UKENDT, står ordet dér hvor «forbrug ukendt» stod, og
+    ///     den sætning flytter ned i `.help()` — pladsen var alligevel taget af
+    ///     en sætning der ikke sagde andet end at huset ikke vidste noget,
+    ///   * er forbruget KENDT, står ordet som en lille linje OVER husets
+    ///     «nulstilles»-sætning, inde i den plads ringen allerede er høj nok til
+    ///     (2 linjer à 9 pt = 24 pt i en 32 pt høj række). Blokken er stadig
+    ///     47 pt og stadig 136 pt bred: den stille linje koster hverken en
+    ///     kortrække eller en pt i bredden. Prisen er at «nulstilles»-sætningen
+    ///     går fra to linjer til én klippet linje — den står hel i `.help()`.
+    /// Venter Claude, står ordet i rækken ØVERST, og så vises linjen her ikke:
+    /// det samme to steder er ikke to beskeder.
     @ViewBuilder
     private var forbrugBlok: some View {
-        if let forbrug = jarvis.claudeForbrug {
-            let farve = jarvisForbrugsfarve(forbrug.farve)
+        let forbrug = jarvis.claudeForbrug
+        let stilleOrd = claudeStilleOrd
+        if forbrug != nil || stilleOrd != nil {
+            let farve = jarvisForbrugsfarve(forbrug?.farve)
             VStack(alignment: .leading, spacing: 4) {
-                if forbrug.erKendt {
+                if let forbrug = forbrug, forbrug.erKendt {
                     HStack(alignment: .center, spacing: 6) {
                         forbrugRing(forbrug, farve: farve)
-                        Text(jarvisOrd(forbrug.vindueNulstillesOrd)
-                             ?? jarvisOrd(forbrug.vindueOrd) ?? "")
-                            .font(.system(size: 9))
-                            .foregroundStyle(Color.gray)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            if let ord = stilleOrd {
+                                claudeStilleLinje(ord, linjer: 1)
+                            }
+                            Text(jarvisOrd(forbrug.vindueNulstillesOrd)
+                                 ?? jarvisOrd(forbrug.vindueOrd) ?? "")
+                                .font(.system(size: 9))
+                                .foregroundStyle(Color.gray)
+                                .lineLimit(stilleOrd == nil ? 2 : 1)
+                                .truncationMode(.tail)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     ugeStrimmel(forbrug, farve: farve)
                 } else {
@@ -251,20 +275,65 @@ struct JarvisView: View {
                         Circle()
                             .stroke(Color.gray.opacity(0.28), lineWidth: 3)
                             .frame(width: 26, height: 26)
-                        Text(jarvisOrd(forbrug.vindueOrd)
-                             ?? NSLocalizedString("usage unknown right now",
-                                                  comment: "Jarvis: the house could not read Claude's usage"))
-                            .font(.system(size: 9))
-                            .foregroundStyle(Color.gray)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
+                        if let ord = stilleOrd {
+                            claudeStilleLinje(ord, linjer: 2)
+                        } else {
+                            Text(jarvisOrd(forbrug?.vindueOrd)
+                                 ?? NSLocalizedString("usage unknown right now",
+                                                      comment: "Jarvis: the house could not read Claude's usage"))
+                                .font(.system(size: 9))
+                                .foregroundStyle(Color.gray)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
             }
             .frame(width: 136, alignment: .leading)
             .help(forbrugHjaelp(forbrug))
         }
+    }
+
+    /// Claudes eget ord om sig selv — eller nil.
+    ///
+    /// Nil i præcis to tilfælde: rækken øverst siger det allerede (`claudeVenter`),
+    /// eller huset sendte slet intet ord (en bro fra før 18/9 — så vises intet,
+    /// nøjagtig som før). Vi gætter aldrig et ord på husets vegne.
+    private var claudeStilleOrd: String? {
+        if jarvis.claudeVenter { return nil }
+        return jarvisOrd(jarvis.claude?.ord)
+    }
+
+    /// Den stille linje: ikonet for tilstanden + husets ord for den.
+    ///
+    /// Ikonet bærer tilstanden i FARVE (`jarvisClaudefarve` — accenten når han
+    /// arbejder, gråt når han er stille), og teksten er grå. Husets regel fra
+    /// 12/9 er at farve betyder noget: «Claude arbejder» er ikke noget han skal
+    /// gøre ved, og en linje der råber om noget man ikke skal gøre noget ved,
+    /// lærer man at overse. Rav er hans tur — og den står i rækken øverst.
+    private func claudeStilleLinje(_ ord: String, linjer: Int) -> some View {
+        let farve = jarvisClaudefarve(jarvis.claudeTilstand)
+        return HStack(alignment: .center, spacing: 4) {
+            Image(systemName: jarvisClaudeikon(jarvis.claudeTilstand))
+                .font(.system(size: 9))
+                .foregroundStyle(farve)
+                .frame(width: 11)
+            Text(ord)
+                .font(.system(size: 9))
+                .foregroundStyle(jarvis.claudeVenter ? farve : Color.gray)
+                .lineLimit(linjer)
+                // 0,75 og ikke 0,85: det længste ord huset sender («Claude har
+                // hjælpere i gang») er 26 tegn, og søjlen ved siden af ringen er
+                // 83 pt bred. SwiftUI skrumper FØR den klipper, så en tomme
+                // ekstra her er forskellen på en hel sætning og en halv. Klippes
+                // den alligevel, står den hel i blokkens `.help()`.
+                .minimumScaleFactor(0.75)
+                .truncationMode(.tail)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .opacity(jarvis.claudeVenter ? 1.0 : 0.85)
     }
 
     /// 5-timers-vinduet: en ring med procenten i midten.
@@ -315,12 +384,25 @@ struct JarvisView: View {
         }
     }
 
-    /// Tooltip: hele forbruget i husets egne ord, for den plads ringen ikke har.
-    private func forbrugHjaelp(_ forbrug: JarvisForbrug) -> String {
+    /// Tooltip: Claudes ord og hele forbruget i husets egne sætninger, for den
+    /// plads ringen ikke har.
+    ///
+    /// Her ligger de tre ting skærmen ikke havde plads til: Claudes ord når
+    /// rækken øverst bærer det i stedet, hele «nulstilles»-sætningen når den
+    /// stille linje klippede den til én linje, og «forbrug ukendt lige nu» når
+    /// ordet tog dens plads. Intet forsvinder — det flytter sig.
+    private func forbrugHjaelp(_ forbrug: JarvisForbrug?) -> String {
         var linjer: [String] = []
-        for ord in [forbrug.vindueOrd, forbrug.vindueNulstillesOrd,
-                    forbrug.ugeOrd, forbrug.ugeNulstillesOrd, forbrug.hentetOrd] {
-            if let ord = jarvisOrd(ord) { linjer.append(ord) }
+        if let ord = jarvisOrd(jarvis.claude?.ord) { linjer.append(ord) }
+        if let forbrug = forbrug {
+            for ord in [forbrug.vindueOrd, forbrug.vindueNulstillesOrd,
+                        forbrug.ugeOrd, forbrug.ugeNulstillesOrd, forbrug.hentetOrd] {
+                if let ord = jarvisOrd(ord) { linjer.append(ord) }
+            }
+        }
+        if forbrug?.erKendt != true, jarvisOrd(forbrug?.vindueOrd) == nil {
+            linjer.append(NSLocalizedString("usage unknown right now",
+                                            comment: "Jarvis: the house could not read Claude's usage"))
         }
         return linjer.joined(separator: "\n")
     }

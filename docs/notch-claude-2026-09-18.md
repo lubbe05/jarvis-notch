@@ -108,6 +108,70 @@ alene og lille. **Fodaftrykket er det samme `d × d` i begge tilfælde**, så
 eget klip (det var fejlen 16/9). Dertil er `visKompaktMaerke` udvidet, så mærket
 også vises når KUN Claude venter.
 
+### 19/9: Claude ses altid
+
+Lauritz 19/9: **«der står ikke noget med dig i notchen».** Det var sandt. Alt
+herover viser kun Claude når han VENTER — rækken, pop-uppen, rav-prikken. Sad han
+og byggede i fire timer, stod der intet om ham nogen steder, og forbrugsblokken
+sagde oven i købet bare «forbrug ukendt lige nu». Han kunne se at Claude var gået
+i stå, men ikke at Claude var i live.
+
+Nu bærer forbrugsblokken **Claudes eget ord om sig selv** — husets `claude.ord`,
+altså «Claude arbejder», «Claude har hjælpere i gang», «Claude er klar til dig»,
+«Claude er stille». Ét sted, én linje, og ordet kommer fra broen: notchen finder
+aldrig selv på et ord om Claude. Kommer der intet ord (en bro fra før 18/9), står
+der intet — nøjagtig som før.
+
+`JarvisView.claudeStilleLinje` er linjen, og `claudeStilleOrd` afgør om den vises:
+
+* **Forbruget ukendt** (`kendt: false`, eller ingen `forbrug`-blok overhovedet):
+  ordet står dér hvor «forbrug ukendt lige nu» stod, ved siden af den grå tomme
+  ring. Sætningen om det ukendte flytter ned i `.help()`. Den plads sagde
+  alligevel ikke andet end at huset ikke vidste noget.
+* **Forbruget kendt:** ring og strimmel er urørte, og ordet står som en lille
+  linje OVER husets «nulstilles»-sætning, i søjlen ved siden af ringen.
+* **Venter Claude:** linjen vises IKKE. Rækken øverst siger det samme, og den har
+  også `sidste_ord` og «Åbn». Det samme to steder er ikke to beskeder.
+  Ordet ligger stadig i `.help()`.
+
+**Ikonet farves, teksten er grå.** `jarvisClaudeikon` og `jarvisClaudefarve` er de
+samme som rækkens, så et hammer-ikon i accenten betyder det samme to steder. Men
+teksten er grå og hele linjen står på 0,85 i opacity: farve er betydning (12/9),
+og «Claude arbejder» er ikke noget han skal gøre noget ved. Rav — «det er din tur»
+— er forbeholdt rækken øverst, og den farve kan linjen her aldrig få, fordi den
+netop er skjult i de to tilstande der giver rav.
+
+**Højden: linjen koster nul pt.** Se regnestykket i `sizing/matters.swift`. Er
+forbruget ukendt, tager ordet pladsen fra en sætning der stod der i forvejen. Er
+det kendt, står linjen inde i den plads ringen allerede gør rækken høj: 9 pt + 2
++ 9 pt = 24 pt tekst i en 32 pt høj række. Blokken er stadig 32 + 4 + 11 = 47 pt,
+altså toplinjens egen højde, og stadig 136 pt bred.
+
+**Prisen står ét sted, og den er lille:** «nulstilles»-sætningen ved siden af
+ringen går fra to linjer til én klippet linje, så længe den stille linje står der
+(`lineLimit(stilleOrd == nil ? 2 : 1)` — er linjen væk, er de to linjer tilbage
+med det samme). Hele sætningen står i `.help()` sammen med de fire andre.
+
+**Valget der blev fravalgt:** en ekstra linje UNDER ugestrimlen. Den ville have
+kostet 4 + 11 = 15 pt af fanens 19 pt luft — og det ville faktisk have holdt,
+fordi linjen kun vises når Claude-rækken IKKE står, så de to priser aldrig kan
+lægges sammen. Men 4 pt luft tilbage på et regnestykke ingen har målt på en
+skærm, er ikke en pris værd at betale for det samme ord.
+
+Uændret: polleren, pop-uppen, det lukkede mærke, rækken øverst og
+`Localizable.xcstrings` (ordet kommer fra broen, og `.help()` genbruger nøglen
+«usage unknown right now» fra 18/9).
+
+**To ting at se efter når der er en compiler:**
+
+* «Claude har hjælpere i gang» er 26 tegn, og søjlen ved siden af ringen er
+  ~83 pt bred. `minimumScaleFactor(0.75)` skrumper den til ~88 pt før den klipper,
+  altså tæt på — bliver den klippet med «…», står den hel i `.help()`.
+  Et kortere ord fra broen løser det helt.
+* `jarvisClaudeikon` kender «venter», «tilladelse» og «arbejder». En tilstand den
+  ikke kender (fx en ny «stille») får spørgsmålstegnet. Døber huset en ny
+  tilstand, er det én linje i `switch`en i JarvisFaelles.swift.
+
 ## 3. Hvornår er en besked NY?
 
 Det svære er ikke at vise en pop-up, men at vide om beskeden er ny. Huset sender
